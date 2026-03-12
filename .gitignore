@@ -1,0 +1,10 @@
+venv/
+AID/
+AID_split/
+Assignment2/
+
+__pycache__/
+*.pyc
+*.pth
+*.pt
+.DS_Store
