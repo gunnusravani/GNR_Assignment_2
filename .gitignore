@@ -2,6 +2,7 @@ venv/
 AID/
 AID_split/
 Assignment2/
+outputs/
 
 __pycache__/
 *.pyc

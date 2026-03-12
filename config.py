@@ -69,9 +69,16 @@ def _with_defaults() -> Config:
         "scenario_transfer_mode",
         {
             "linear_probe": "linear_probe",
+
+            # Default fine-tuning strategy per scenario (change as you like)
             "fine_tune": "full_ft",
-            "few_shot": "full_ft",
-            "corruption": "full_ft",
+
+            # Examples: make these parameter-efficient by default
+            "few_shot": "selective_20",
+            "corruption": "last_block",
+
+            # layer_probe trains a full_ft model first (see run_experiments.py),
+            # then probes depths on that trained model.
             "layer_probe": "full_ft",
         },
     )

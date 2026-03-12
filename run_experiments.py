@@ -397,10 +397,10 @@ def run() -> None:
             if scenario == "layer_probe":
                 ckpt = _train_and_get_best_ckpt(
                     backbone,
-                    transfer_mode="full_ft",
+                    transfer_mode=transfer_mode,  # changed: respect scenario mapping
                     train_loader=train_loader,
                     val_loader=val_loader,
-                    run_dir=run_dir / "train_full_ft_for_probe",
+                    run_dir=run_dir / f"train_{transfer_mode}_for_probe",
                 )
 
                 model, _info = build_model(backbone, num_classes=CFG.num_classes, pretrained=False)
