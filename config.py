@@ -6,7 +6,7 @@ class Config:
     # --- Paths (edit these) ---
     data_root: Path = Path("AID_split")  # expects ImageFolder-like: AID_split/train/<class>/*.jpg etc.
     output_dir: Path = Path("results")
-    checkpoint_dir: Path = Path("checkpoints")
+    checkpoint_dir: Path = Path("model_checkpoints")
 
     # --- Task ---
     num_classes: int = 30
@@ -19,7 +19,7 @@ class Config:
 
     # --- Training ---
     seed: int = 1337
-    epochs: int = 10
+    epochs: int = 30
     batch_size: int = 32
     lr: float = 1e-3
     weight_decay: float = 1e-4
