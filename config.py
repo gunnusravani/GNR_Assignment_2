@@ -28,7 +28,8 @@ class Config:
 
     # --- Experiments ---
     exp_models: tuple[str, ...] = ("resnet50", "inception_v3", "densenet121")
-    exp_scenarios: tuple[str, ...] = ("linear_probe",)
+    exp_scenarios: tuple[str, ...] = ("fine_tune",)
+    fine_tune_modes: tuple[str, ...] = ("linear_probe", "last_block", "full_ft", "selective_20")
 
     # Scenario knobs
     few_shot_frac: float = 0.05          # uses subset of train set

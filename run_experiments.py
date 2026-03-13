@@ -15,7 +15,7 @@ from data.dataloaders import (
     build_subset_trainloaders,
     build_corrupted_eval_datasets,
 )
-from models.backbone import build_model, set_transfer_mode
+from models.backbone import TransferSummary, build_model, set_transfer_mode
 from experiments.trainer import TrainResult, train as train_one, evaluate as eval_one
 from utils.checkpoint import load_checkpoint
 
@@ -31,6 +31,7 @@ from analysis.metrics import (
     make_classification_report,
     plot_accuracy_curves,
     plot_confusion_matrix,
+    plot_loss_curves,
 )
 
 
@@ -57,9 +58,9 @@ def _train_and_get_best_ckpt(
     val_loader,
     run_dir: Path,
     ckpt_dir: Path,
-) -> TrainResult:
+) -> tuple[TrainResult, TransferSummary]:
     model, _info = build_model(backbone, num_classes=CFG.num_classes, pretrained=CFG.pretrained)
-    _ = set_transfer_mode(model, transfer_mode, backbone=backbone)
+    summary = set_transfer_mode(model, transfer_mode, backbone=backbone)
 
     opt = torch.optim.AdamW(
         (p for p in model.parameters() if p.requires_grad),
@@ -67,7 +68,7 @@ def _train_and_get_best_ckpt(
         weight_decay=CFG.weight_decay,
     )
 
-    return train_one(
+    res = train_one(
         model,
         train_loader,
         val_loader,
@@ -78,6 +79,58 @@ def _train_and_get_best_ckpt(
         checkpoint_dir=ckpt_dir,
         results_dir=run_dir,
     )
+    return res, summary
+
+
+def _latest_grad_stats(run_dir: Path) -> dict[str, float]:
+    files = sorted(run_dir.glob("grad_norms_epoch_*.json"))
+    if not files:
+        return {}
+    with files[-1].open("r") as f:
+        payload = json.load(f)
+    if not isinstance(payload, dict) or not payload:
+        return {}
+
+    means = []
+    maxs = []
+    for v in payload.values():
+        if isinstance(v, dict):
+            m = v.get("mean")
+            mx = v.get("max")
+            if isinstance(m, (int, float)):
+                means.append(float(m))
+            if isinstance(mx, (int, float)):
+                maxs.append(float(mx))
+
+    out: dict[str, float] = {}
+    if means:
+        out["grad_mean_over_params"] = float(sum(means) / len(means))
+        out["grad_median_over_params"] = float(sorted(means)[len(means) // 2])
+    if maxs:
+        out["grad_max_over_params"] = float(max(maxs))
+    return out
+
+
+def _plot_val_acc_vs_unfrozen(rows: list[dict], out_path: Path, *, title: str) -> Path:
+    import matplotlib.pyplot as plt
+
+    xs = [float(r.get("trainable_frac", 0.0)) * 100.0 for r in rows]
+    ys = [float(r.get("val_acc", 0.0)) for r in rows]
+    labels = [str(r.get("transfer_mode", "")) for r in rows]
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.figure(figsize=(7, 4))
+    plt.plot(xs, ys, marker="o")
+    for x, y, lab in zip(xs, ys, labels):
+        plt.annotate(lab, (x, y), textcoords="offset points", xytext=(0, 6), ha="center", fontsize=8)
+    plt.xlabel("Unfrozen Parameters (%)")
+    plt.ylabel("Validation Accuracy")
+    plt.title(title)
+    plt.grid(True, linestyle="--", linewidth=0.5, alpha=0.6)
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=160)
+    plt.close()
+    return out_path
 
 
 @torch.no_grad()
@@ -438,7 +491,7 @@ def run() -> None:
             # Keep it simple: probe the ImageNet-pretrained backbone with task head (untrained) is not useful,
             # so probe a trained full_ft model for this backbone.
             if scenario == "layer_probe":
-                train_res = _train_and_get_best_ckpt(
+                train_res, _summary = _train_and_get_best_ckpt(
                     backbone,
                     transfer_mode=transfer_mode,  # changed: respect scenario mapping
                     train_loader=train_loader,
@@ -479,7 +532,82 @@ def run() -> None:
                 continue
 
             # --- train (for standard scenarios) ---
-            train_res = _train_and_get_best_ckpt(
+            if scenario == "fine_tune":
+                mode_rows: list[dict] = []
+                mode_results_dir = run_dir / "modes"
+                mode_ckpt_dir = ckpt_run_dir / "modes"
+                mode_results_dir.mkdir(parents=True, exist_ok=True)
+                mode_ckpt_dir.mkdir(parents=True, exist_ok=True)
+
+                for mode in CFG.fine_tune_modes:
+                    mode_run_dir = mode_results_dir / mode
+                    mode_ckpt_run_dir = mode_ckpt_dir / mode
+                    mode_run_dir.mkdir(parents=True, exist_ok=True)
+                    mode_ckpt_run_dir.mkdir(parents=True, exist_ok=True)
+
+                    train_res_mode, summary = _train_and_get_best_ckpt(
+                        backbone,
+                        transfer_mode=mode,
+                        train_loader=train_loader,
+                        val_loader=val_loader,
+                        run_dir=mode_run_dir,
+                        ckpt_dir=mode_ckpt_run_dir,
+                    )
+
+                    model_mode, _ = build_model(backbone, num_classes=CFG.num_classes, pretrained=False)
+                    load_checkpoint(train_res_mode.best_ckpt, model_mode)
+                    model_mode.to(_device())
+                    val_acc_mode = float(eval_one(model_mode, val_loader, _device()))
+
+                    acc_curve_path = plot_accuracy_curves(
+                        train_res_mode.history,
+                        out_path=mode_run_dir / "accuracy_curves.png",
+                        title=f"{backbone} {mode}: train/val accuracy",
+                    )
+                    loss_curve_path = plot_loss_curves(
+                        train_res_mode.history,
+                        out_path=mode_run_dir / "loss_curves.png",
+                        title=f"{backbone} {mode}: train/val loss",
+                    )
+
+                    grad_stats = _latest_grad_stats(mode_run_dir)
+
+                    mode_row = {
+                        **row_base,
+                        "scenario": "fine_tune",
+                        "transfer_mode": mode,
+                        "ckpt": str(train_res_mode.best_ckpt),
+                        "val_acc": val_acc_mode,
+                        "trainable_params": int(summary.trainable_params),
+                        "total_params": int(summary.total_params),
+                        "trainable_frac": float(summary.trainable_frac),
+                        "unfrozen_percent": float(summary.trainable_frac) * 100.0,
+                        "mode_notes": summary.notes,
+                        "artifact_accuracy_curves": str(acc_curve_path),
+                        "artifact_loss_curves": str(loss_curve_path),
+                        **grad_stats,
+                        "seconds": round(time.time() - t0, 2),
+                    }
+                    mode_rows.append(mode_row)
+
+                # Scenario-2 required comparison plot: accuracy vs unfrozen %
+                mode_rows_sorted = sorted(mode_rows, key=lambda r: float(r.get("unfrozen_percent", 0.0)))
+                cmp_plot = _plot_val_acc_vs_unfrozen(
+                    mode_rows_sorted,
+                    run_dir / "val_acc_vs_unfrozen_percent.png",
+                    title=f"{backbone}: val acc vs unfrozen params",
+                )
+
+                for r in mode_rows_sorted:
+                    r["artifact_val_acc_vs_unfrozen_percent"] = str(cmp_plot)
+                    csv_path = out_dir / "results_fine_tune.csv"
+                    fieldnames = list(r.keys())
+                    _append_row(csv_path, fieldnames, r)
+
+                # fine_tune handled per mode; continue to next scenario
+                continue
+
+            train_res, _summary = _train_and_get_best_ckpt(
                 backbone,
                 transfer_mode=transfer_mode,
                 train_loader=train_loader,

@@ -117,6 +117,42 @@ def plot_accuracy_curves(
     return out_path
 
 
+def plot_loss_curves(
+    history: Dict[str, List[float]],
+    *,
+    out_path: str | Path,
+    title: str = "Loss vs Epoch",
+) -> Path:
+    """
+    Expects history keys:
+      - train_loss
+      - val_loss
+    """
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    train_loss = history.get("train_loss", [])
+    val_loss = history.get("val_loss", [])
+    epochs = np.arange(1, max(len(train_loss), len(val_loss)) + 1)
+
+    plt.figure(figsize=(7, 4))
+    if train_loss:
+        plt.plot(epochs[: len(train_loss)], train_loss, label="train_loss")
+    if val_loss:
+        plt.plot(epochs[: len(val_loss)], val_loss, label="val_loss")
+
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title(title)
+    plt.grid(True, linestyle="--", linewidth=0.5, alpha=0.6)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=160)
+    plt.close()
+
+    return out_path
+
+
 def plot_confusion_matrix(
     cm: np.ndarray,
     *,
