@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import csv
+import json
 import time
-from dataclasses import asdict
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -16,13 +16,21 @@ from data.dataloaders import (
     build_corrupted_eval_datasets,
 )
 from models.backbone import build_model, set_transfer_mode
-from experiments.trainer import train as train_one, evaluate as eval_one
+from experiments.trainer import TrainResult, train as train_one, evaluate as eval_one
 from utils.checkpoint import load_checkpoint
 
 from analysis.feature_visualization import (
+    extract_features,
     extract_features_at_depths,
     train_linear_classifiers_on_depths,
     plot_val_accuracy_vs_depth,
+    visualize_features_pca_tsne,
+)
+from analysis.metrics import (
+    compute_classification_metrics,
+    make_classification_report,
+    plot_accuracy_curves,
+    plot_confusion_matrix,
 )
 
 
@@ -48,7 +56,7 @@ def _train_and_get_best_ckpt(
     train_loader,
     val_loader,
     run_dir: Path,
-) -> Path:
+) -> TrainResult:
     model, _info = build_model(backbone, num_classes=CFG.num_classes, pretrained=CFG.pretrained)
     _ = set_transfer_mode(model, transfer_mode, backbone=backbone)
 
@@ -58,8 +66,28 @@ def _train_and_get_best_ckpt(
         weight_decay=CFG.weight_decay,
     )
 
-    res = train_one(model, train_loader, val_loader, opt, CFG.epochs, _device(), run_dir)
-    return res.best_ckpt
+    return train_one(model, train_loader, val_loader, opt, CFG.epochs, _device(), run_dir)
+
+
+@torch.no_grad()
+def _collect_preds(model, loader, *, device: str) -> tuple[list[int], list[int]]:
+    y_true: list[int] = []
+    y_pred: list[int] = []
+    model.eval()
+    for x, y in loader:
+        x = x.to(device, non_blocking=True)
+        y = y.to(device, non_blocking=True)
+        logits = model(x)
+        pred = logits.argmax(dim=1)
+        y_true.extend(y.detach().cpu().tolist())
+        y_pred.extend(pred.detach().cpu().tolist())
+    return y_true, y_pred
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w") as f:
+        json.dump(payload, f, indent=2, sort_keys=True)
 
 
 @torch.no_grad()
@@ -395,13 +423,14 @@ def run() -> None:
             # Keep it simple: probe the ImageNet-pretrained backbone with task head (untrained) is not useful,
             # so probe a trained full_ft model for this backbone.
             if scenario == "layer_probe":
-                ckpt = _train_and_get_best_ckpt(
+                train_res = _train_and_get_best_ckpt(
                     backbone,
                     transfer_mode=transfer_mode,  # changed: respect scenario mapping
                     train_loader=train_loader,
                     val_loader=val_loader,
                     run_dir=run_dir / f"train_{transfer_mode}_for_probe",
                 )
+                ckpt = train_res.best_ckpt
 
                 model, _info = build_model(backbone, num_classes=CFG.num_classes, pretrained=False)
                 load_checkpoint(ckpt, model)
@@ -434,13 +463,14 @@ def run() -> None:
                 continue
 
             # --- train (for standard scenarios) ---
-            ckpt = _train_and_get_best_ckpt(
+            train_res = _train_and_get_best_ckpt(
                 backbone,
                 transfer_mode=transfer_mode,
                 train_loader=train_loader,
                 val_loader=val_loader,
                 run_dir=run_dir,
             )
+            ckpt = train_res.best_ckpt
 
             # --- eval clean + optional corruption ---
             model, _info = build_model(backbone, num_classes=CFG.num_classes, pretrained=False)
@@ -455,6 +485,73 @@ def run() -> None:
                 "val_acc": clean_acc,
                 "seconds": round(time.time() - t0, 2),
             }
+
+            if scenario == "linear_probe":
+                # 1) Training/validation accuracy curves
+                acc_curve_path = plot_accuracy_curves(
+                    train_res.history,
+                    out_path=run_dir / "accuracy_curves.png",
+                    title=f"{backbone} linear_probe: train/val accuracy",
+                )
+
+                # 2) Confusion matrix + classification report
+                y_true, y_pred = _collect_preds(model, val_loader, device=_device())
+                class_names = list(getattr(val_loader.dataset, "classes", []))
+                labels = list(range(len(class_names))) if class_names else None
+                cls_metrics = compute_classification_metrics(y_true, y_pred, labels=labels)
+
+                cm_path = plot_confusion_matrix(
+                    cls_metrics.confusion,
+                    out_path=run_dir / "confusion_matrix.png",
+                    class_names=class_names if class_names else None,
+                    normalize=True,
+                    title=f"{backbone} linear_probe: normalized confusion matrix",
+                )
+
+                report_txt = make_classification_report(
+                    y_true,
+                    y_pred,
+                    target_names=class_names if class_names else None,
+                    labels=labels,
+                )
+                report_path = run_dir / "classification_report.txt"
+                with report_path.open("w") as f:
+                    f.write(report_txt)
+
+                _write_json(
+                    run_dir / "classification_summary.json",
+                    {
+                        "accuracy": cls_metrics.accuracy,
+                        "precision_macro": cls_metrics.precision_macro,
+                        "recall_macro": cls_metrics.recall_macro,
+                        "f1_macro": cls_metrics.f1_macro,
+                        "precision_weighted": cls_metrics.precision_weighted,
+                        "recall_weighted": cls_metrics.recall_weighted,
+                        "f1_weighted": cls_metrics.f1_weighted,
+                    },
+                )
+
+                # 3) Feature embeddings (PCA + t-SNE)
+                feat_val = extract_features(
+                    model,
+                    val_loader,
+                    device=_device(),
+                    max_batches=CFG.feature_extract_max_batches,
+                )
+                pca_path, tsne_path = visualize_features_pca_tsne(
+                    feat_val,
+                    out_dir=run_dir / "feature_viz",
+                    seed=CFG.seed,
+                )
+
+                row["artifact_accuracy_curves"] = str(acc_curve_path)
+                row["artifact_confusion_matrix"] = str(cm_path)
+                row["artifact_classification_report"] = str(report_path)
+                row["artifact_pca_2d"] = str(pca_path)
+                row["artifact_tsne_2d"] = str(tsne_path)
+                row["val_precision_macro"] = float(cls_metrics.precision_macro)
+                row["val_recall_macro"] = float(cls_metrics.recall_macro)
+                row["val_f1_macro"] = float(cls_metrics.f1_macro)
 
             if scenario == "corruption" and CFG.corruptions_enabled:
                 corr = _eval_corruptions(model, batch_size=CFG.batch_size, num_workers=CFG.num_workers)

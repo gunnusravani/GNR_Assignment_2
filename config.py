@@ -9,7 +9,7 @@ class Config:
 
     # --- Task ---
     num_classes: int = 30
-    image_size: int = 224  # set 299 for inception_v3 runs if needed
+    image_size: int = 299  # use 299 for inception_v3; also works for resnet50/densenet121
 
     # --- Model / Transfer mode ---
     backbone: str = "resnet50"  # timm model name
@@ -26,8 +26,8 @@ class Config:
     device: str = "cuda"  # default to GPU; code falls back to CPU if CUDA isn't available
 
     # --- Experiments ---
-    exp_models: tuple[str, ...] = ("resnet50", "densenet121", "efficientnet_b0")
-    exp_scenarios: tuple[str, ...] = ("linear_probe", "fine_tune", "few_shot", "corruption", "layer_probe")
+    exp_models: tuple[str, ...] = ("resnet50", "inception_v3", "densenet121")
+    exp_scenarios: tuple[str, ...] = ("linear_probe",)
 
     # Scenario knobs
     few_shot_frac: float = 0.05          # uses subset of train set
@@ -36,7 +36,7 @@ class Config:
     corruptions_enabled: bool = True
 
     # Experiment runner I/O
-    exp_out_dir: Path = Path("outputs/experiments")
+    exp_out_dir: Path = Path("outputs/experiments/scenario1_linear_probe")
     exp_append_csv: bool = True  # if False, runner overwrites CSVs each run
 
     # --- DataLoader defaults ---

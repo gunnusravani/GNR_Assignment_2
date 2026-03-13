@@ -115,3 +115,43 @@ def plot_accuracy_curves(
     plt.close()
 
     return out_path
+
+
+def plot_confusion_matrix(
+    cm: np.ndarray,
+    *,
+    out_path: str | Path,
+    class_names: Optional[Sequence[str]] = None,
+    normalize: bool = False,
+    title: str = "Confusion Matrix",
+) -> Path:
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    mat = cm.astype(np.float64)
+    if normalize:
+        row_sums = mat.sum(axis=1, keepdims=True)
+        row_sums[row_sums == 0] = 1.0
+        mat = mat / row_sums
+
+    fig_w = 10 if mat.shape[0] > 20 else 8
+    fig_h = 8 if mat.shape[0] > 20 else 6
+    plt.figure(figsize=(fig_w, fig_h))
+    im = plt.imshow(mat, interpolation="nearest", cmap="Blues")
+    plt.title(title)
+    plt.colorbar(im, fraction=0.046, pad=0.04)
+
+    if class_names is not None and len(class_names) == mat.shape[0]:
+        ticks = np.arange(len(class_names))
+        plt.xticks(ticks, class_names, rotation=90, fontsize=7)
+        plt.yticks(ticks, class_names, fontsize=7)
+    else:
+        plt.xticks([])
+        plt.yticks([])
+
+    plt.ylabel("True label")
+    plt.xlabel("Predicted label")
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=180)
+    plt.close()
+    return out_path

@@ -12,6 +12,7 @@ from utils.checkpoint import save_checkpoint
 class TrainResult:
     best_val_acc: float
     best_ckpt: Path
+    history: dict[str, list[float]]
 
 @torch.no_grad()
 def _grad_l2_norms_by_param(model: nn.Module) -> dict[str, float]:
@@ -82,12 +83,21 @@ def train(
     best_path = out_dir / "best.pt"
 
     metrics_path = out_dir / "metrics.jsonl"
+    history: dict[str, list[float]] = {
+        "train_loss": [],
+        "train_acc": [],
+        "val_loss": [],
+        "val_acc": [],
+    }
 
     global_step = 0
 
     for epoch in range(1, epochs + 1):
         model.train()
         epoch_grad_stats: dict[str, dict[str, float]] = {}
+        total_loss = 0.0
+        total_correct = 0
+        total_seen = 0
 
         pbar = tqdm(train_loader, desc=f"train {epoch}/{epochs}", leave=False)
         for x, y in pbar:
@@ -105,6 +115,14 @@ def train(
             optimizer.step()
             pbar.set_postfix(loss=float(loss.item()))
 
+            bs = y.size(0)
+            total_loss += float(loss.item()) * bs
+            total_correct += int((logits.argmax(dim=1) == y).sum().item())
+            total_seen += int(bs)
+
+        train_loss = total_loss / max(1, total_seen)
+        train_acc = total_correct / max(1, total_seen)
+
         if log_grad_norms:
             grad_epoch = _finalize_epoch_grad_stats(epoch_grad_stats)
             with (out_dir / f"grad_norms_epoch_{epoch:03d}.json").open("w") as f:
@@ -115,21 +133,59 @@ def train(
                 top_str = ", ".join([f"{n}={v['mean']:.3e}" for n, v in top])
                 print(f"epoch={epoch} grad_norm_mean_top5: {top_str}")
 
-        val_acc = evaluate(model, val_loader, device)
+        val_loss, val_acc = evaluate_with_loss(model, val_loader, criterion, device)
         save_checkpoint(out_dir / "latest.pt", model, optimizer=optimizer, epoch=epoch, val_acc=val_acc)
 
         if val_acc > best_acc:
             best_acc = val_acc
             save_checkpoint(best_path, model, optimizer=optimizer, epoch=epoch, val_acc=val_acc)
 
+        history["train_loss"].append(float(train_loss))
+        history["train_acc"].append(float(train_acc))
+        history["val_loss"].append(float(val_loss))
+        history["val_acc"].append(float(val_acc))
+
         if log_metrics_jsonl:
-            rec = {"epoch": epoch, "val_acc": float(val_acc), "best_val_acc": float(best_acc)}
+            rec = {
+                "epoch": epoch,
+                "train_loss": float(train_loss),
+                "train_acc": float(train_acc),
+                "val_loss": float(val_loss),
+                "val_acc": float(val_acc),
+                "best_val_acc": float(best_acc),
+            }
             with metrics_path.open("a") as f:
                 f.write(json.dumps(rec) + "\n")
 
-        print(f"epoch={epoch} val_acc={val_acc:.4f} best={best_acc:.4f}")
+        print(
+            f"epoch={epoch} "
+            f"train_loss={train_loss:.4f} train_acc={train_acc:.4f} "
+            f"val_loss={val_loss:.4f} val_acc={val_acc:.4f} "
+            f"best={best_acc:.4f}"
+        )
 
-    return TrainResult(best_val_acc=best_acc, best_ckpt=best_path)
+    return TrainResult(best_val_acc=best_acc, best_ckpt=best_path, history=history)
+
+
+@torch.no_grad()
+def evaluate_with_loss(model: nn.Module, loader, criterion: nn.Module, device: str) -> tuple[float, float]:
+    model.eval()
+    total_loss = 0.0
+    total_correct = 0
+    total_seen = 0
+    for x, y in loader:
+        x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True)
+        logits = model(x)
+        loss = criterion(logits, y)
+
+        bs = y.size(0)
+        total_loss += float(loss.item()) * bs
+        total_correct += int((logits.argmax(dim=1) == y).sum().item())
+        total_seen += int(bs)
+
+    avg_loss = total_loss / max(1, total_seen)
+    avg_acc = total_correct / max(1, total_seen)
+    return float(avg_loss), float(avg_acc)
 
 @torch.no_grad()
 def evaluate(model: nn.Module, loader, device: str) -> float:
