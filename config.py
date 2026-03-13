@@ -38,7 +38,7 @@ class Config:
 
     # Experiment runner I/O
     exp_out_dir: Path = Path("results")
-    exp_ckpt_dir: Path = Path("checkpoints")
+    exp_ckpt_dir: Path = Path("model_checkpoints")
     exp_append_csv: bool = True  # if False, runner overwrites CSVs each run
 
     # --- DataLoader defaults ---
