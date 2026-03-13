@@ -4,6 +4,10 @@ AID_split/
 Assignment2/
 outputs/
 
+checkpoints/
+
+
+
 __pycache__/
 *.pyc
 *.pth
