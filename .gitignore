@@ -3,7 +3,7 @@ AID/
 AID_split/
 Assignment2/
 outputs/
-
+model_checkpoints/
 checkpoints/
 
 .ipynb_checkpoints/

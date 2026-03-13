@@ -1,0 +1,4 @@
+backbone,scenario,transfer_mode,val_acc,delta_vs_fine_tune,few_shot_frac,seconds
+densenet121,linear_probe,linear_probe,0.9204545454545454,,,566.67
+inception_v3,linear_probe,linear_probe,0.8821022727272727,,,554.42
+resnet50,linear_probe,linear_probe,0.8913352272727273,,,577.95

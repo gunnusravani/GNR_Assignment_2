@@ -1,0 +1,14 @@
+\begin{table}[t]
+\centering
+\caption{Parameter efficiency: validation accuracy vs number of trainable parameters.}
+\label{tab:parameter\_efficiency}
+\begin{tabular}{lllllll}
+\toprule
+backbone & scenario & transfer\_mode & val\_acc & trainable\_params & trainable\_frac & acc\_per\_m\_trainable\_params \\
+\midrule
+densenet121 & linear\_probe & linear\_probe & 0.9205 & 30750 & 0.0044 & 29.9335 \\
+inception\_v3 & linear\_probe & linear\_probe & 0.8821 & 61470 & 0.0028 & 14.3501 \\
+resnet50 & linear\_probe & linear\_probe & 0.8913 & 61470 & 0.0026 & 14.5003 \\
+\bottomrule
+\end{tabular}
+\end{table}

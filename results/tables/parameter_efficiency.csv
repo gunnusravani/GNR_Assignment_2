@@ -1,0 +1,4 @@
+backbone,scenario,transfer_mode,val_acc,acc_per_m_trainable_params,trainable_frac,trainable_params
+densenet121,linear_probe,linear_probe,0.9204545454545454,29.933481152993348,0.004402538954953222,30750
+inception_v3,linear_probe,linear_probe,0.8821022727272727,14.350126447491016,0.002813653731915512,61470
+resnet50,linear_probe,linear_probe,0.8913352272727273,14.500329059260245,0.002608031344913439,61470
