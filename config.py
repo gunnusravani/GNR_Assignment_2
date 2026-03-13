@@ -37,8 +37,8 @@ class Config:
     corruptions_enabled: bool = True
 
     # Experiment runner I/O
-    exp_out_dir: Path = Path("results/experiments/scenario1_linear_probe")
-    exp_ckpt_dir: Path = Path("checkpoints/experiments/scenario1_linear_probe")
+    exp_out_dir: Path = Path("results")
+    exp_ckpt_dir: Path = Path("checkpoints")
     exp_append_csv: bool = True  # if False, runner overwrites CSVs each run
 
     # --- DataLoader defaults ---

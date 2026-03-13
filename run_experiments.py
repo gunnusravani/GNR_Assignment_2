@@ -392,8 +392,8 @@ def run() -> None:
         for scenario in CFG.exp_scenarios:
             t0 = time.time()
 
-            run_dir = out_dir / backbone / scenario / time.strftime("%Y%m%d-%H%M%S")
-            ckpt_run_dir = ckpt_out_dir / backbone / scenario / run_dir.name
+            run_dir = out_dir / scenario / backbone / time.strftime("%Y%m%d-%H%M%S")
+            ckpt_run_dir = ckpt_out_dir / scenario / backbone / run_dir.name
             run_dir.mkdir(parents=True, exist_ok=True)
             ckpt_run_dir.mkdir(parents=True, exist_ok=True)
 
