@@ -71,18 +71,27 @@ def train(
     device: str,
     out_dir: Path,
     *,
+    checkpoint_dir: Path | None = None,
+    results_dir: Path | None = None,
     log_grad_norms: bool = True,
     grad_norms_every_n_steps: int = 1,
     log_metrics_jsonl: bool = True,
 ) -> TrainResult:
     out_dir.mkdir(parents=True, exist_ok=True)
+    if checkpoint_dir is None:
+        checkpoint_dir = out_dir / "checkpoints"
+    if results_dir is None:
+        results_dir = out_dir / "results"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    results_dir.mkdir(parents=True, exist_ok=True)
+
     criterion = nn.CrossEntropyLoss()
 
     model.to(device)
     best_acc = -1.0
-    best_path = out_dir / "best.pt"
+    best_path = checkpoint_dir / "best.pt"
 
-    metrics_path = out_dir / "metrics.jsonl"
+    metrics_path = results_dir / "metrics.jsonl"
     history: dict[str, list[float]] = {
         "train_loss": [],
         "train_acc": [],
@@ -125,7 +134,7 @@ def train(
 
         if log_grad_norms:
             grad_epoch = _finalize_epoch_grad_stats(epoch_grad_stats)
-            with (out_dir / f"grad_norms_epoch_{epoch:03d}.json").open("w") as f:
+            with (results_dir / f"grad_norms_epoch_{epoch:03d}.json").open("w") as f:
                 json.dump(grad_epoch, f, indent=2, sort_keys=True)
 
             if grad_epoch:
@@ -134,7 +143,7 @@ def train(
                 print(f"epoch={epoch} grad_norm_mean_top5: {top_str}")
 
         val_loss, val_acc = evaluate_with_loss(model, val_loader, criterion, device)
-        save_checkpoint(out_dir / "latest.pt", model, optimizer=optimizer, epoch=epoch, val_acc=val_acc)
+        save_checkpoint(checkpoint_dir / "latest.pt", model, optimizer=optimizer, epoch=epoch, val_acc=val_acc)
 
         if val_acc > best_acc:
             best_acc = val_acc

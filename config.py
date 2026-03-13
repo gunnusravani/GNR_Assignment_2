@@ -5,7 +5,8 @@ from pathlib import Path
 class Config:
     # --- Paths (edit these) ---
     data_root: Path = Path("AID_split")  # expects ImageFolder-like: AID_split/train/<class>/*.jpg etc.
-    output_dir: Path = Path("outputs")
+    output_dir: Path = Path("results")
+    checkpoint_dir: Path = Path("checkpoints")
 
     # --- Task ---
     num_classes: int = 30
@@ -36,7 +37,8 @@ class Config:
     corruptions_enabled: bool = True
 
     # Experiment runner I/O
-    exp_out_dir: Path = Path("outputs/experiments/scenario1_linear_probe")
+    exp_out_dir: Path = Path("results/experiments/scenario1_linear_probe")
+    exp_ckpt_dir: Path = Path("checkpoints/experiments/scenario1_linear_probe")
     exp_append_csv: bool = True  # if False, runner overwrites CSVs each run
 
     # --- DataLoader defaults ---

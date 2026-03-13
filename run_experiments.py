@@ -56,6 +56,7 @@ def _train_and_get_best_ckpt(
     train_loader,
     val_loader,
     run_dir: Path,
+    ckpt_dir: Path,
 ) -> TrainResult:
     model, _info = build_model(backbone, num_classes=CFG.num_classes, pretrained=CFG.pretrained)
     _ = set_transfer_mode(model, transfer_mode, backbone=backbone)
@@ -66,7 +67,17 @@ def _train_and_get_best_ckpt(
         weight_decay=CFG.weight_decay,
     )
 
-    return train_one(model, train_loader, val_loader, opt, CFG.epochs, _device(), run_dir)
+    return train_one(
+        model,
+        train_loader,
+        val_loader,
+        opt,
+        CFG.epochs,
+        _device(),
+        run_dir,
+        checkpoint_dir=ckpt_dir,
+        results_dir=run_dir,
+    )
 
 
 @torch.no_grad()
@@ -373,14 +384,18 @@ def aggregate_results_to_tables() -> None:
 def run() -> None:
     set_seed(CFG.seed)
     out_dir = Path(CFG.exp_out_dir)
+    ckpt_out_dir = Path(CFG.exp_ckpt_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    ckpt_out_dir.mkdir(parents=True, exist_ok=True)
 
     for backbone in CFG.exp_models:
         for scenario in CFG.exp_scenarios:
             t0 = time.time()
 
             run_dir = out_dir / backbone / scenario / time.strftime("%Y%m%d-%H%M%S")
+            ckpt_run_dir = ckpt_out_dir / backbone / scenario / run_dir.name
             run_dir.mkdir(parents=True, exist_ok=True)
+            ckpt_run_dir.mkdir(parents=True, exist_ok=True)
 
             # scenario-specific loaders / transfer mode
             if scenario == "few_shot":
@@ -429,6 +444,7 @@ def run() -> None:
                     train_loader=train_loader,
                     val_loader=val_loader,
                     run_dir=run_dir / f"train_{transfer_mode}_for_probe",
+                    ckpt_dir=ckpt_run_dir / f"train_{transfer_mode}_for_probe",
                 )
                 ckpt = train_res.best_ckpt
 
@@ -469,6 +485,7 @@ def run() -> None:
                 train_loader=train_loader,
                 val_loader=val_loader,
                 run_dir=run_dir,
+                ckpt_dir=ckpt_run_dir,
             )
             ckpt = train_res.best_ckpt
 

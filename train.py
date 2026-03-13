@@ -44,6 +44,7 @@ def main():
     )
 
     out_dir = CFG.output_dir / CFG.backbone / CFG.transfer_mode
+    ckpt_dir = CFG.checkpoint_dir / CFG.backbone / CFG.transfer_mode
     train(
         model,
         train_loader,
@@ -52,6 +53,8 @@ def main():
         CFG.epochs,
         device,
         out_dir,
+        checkpoint_dir=ckpt_dir,
+        results_dir=out_dir,
         log_grad_norms=CFG.log_grad_norms,
         grad_norms_every_n_steps=CFG.grad_norms_every_n_steps,
         log_metrics_jsonl=CFG.log_metrics_jsonl,
