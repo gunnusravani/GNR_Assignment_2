@@ -62,6 +62,12 @@ def _train_and_get_best_ckpt(
     model, _info = build_model(backbone, num_classes=CFG.num_classes, pretrained=CFG.pretrained)
     summary = set_transfer_mode(model, transfer_mode, backbone=backbone)
 
+    print(
+        f"[train_start] model={backbone} mode={transfer_mode} "
+        f"unfrozen={summary.trainable_params}/{summary.total_params} "
+        f"trainable_frac={summary.trainable_frac:.4f}"
+    )
+
     opt = torch.optim.AdamW(
         (p for p in model.parameters() if p.requires_grad),
         lr=CFG.lr,
