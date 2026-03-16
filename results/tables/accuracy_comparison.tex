@@ -6,9 +6,12 @@
 \toprule
 backbone & scenario & transfer\_mode & val\_acc & delta\_vs\_fine\_tune \\
 \midrule
-densenet121 & linear\_probe & linear\_probe & 0.9205 &  \\
-inception\_v3 & linear\_probe & linear\_probe & 0.8821 &  \\
-resnet50 & linear\_probe & linear\_probe & 0.8913 &  \\
+densenet121 & fine\_tune & last\_block & 0.9545 & 0.0000 \\
+densenet121 & linear\_probe & linear\_probe & 0.9205 & -0.0341 \\
+inception\_v3 & fine\_tune & full\_ft & 0.9403 & 0.0000 \\
+inception\_v3 & linear\_probe & linear\_probe & 0.8821 & -0.0582 \\
+resnet50 & fine\_tune & last\_block & 0.9602 & 0.0000 \\
+resnet50 & linear\_probe & linear\_probe & 0.8913 & -0.0689 \\
 \bottomrule
 \end{tabular}
 \end{table}
