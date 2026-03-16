@@ -61,7 +61,7 @@ def _flatten_if_needed(x: torch.Tensor) -> torch.Tensor:
     return x
 
 
-def _pick_hook_modules(model: nn.Module) -> Dict[str, nn.Module]:
+def _pick_hook_modules_with_names(model: nn.Module) -> Dict[str, Tuple[str, nn.Module]]:
     """
     Heuristic mapping: pick early/mid/final modules across common CNN backbones.
     Works for many timm models but is best-effort.
@@ -72,34 +72,68 @@ def _pick_hook_modules(model: nn.Module) -> Dict[str, nn.Module]:
 
     # ResNet-like
     if hasattr(b, "layer1") and hasattr(b, "layer2") and hasattr(b, "layer4"):
-        return {"early": b.layer1, "mid": b.layer2, "final": b.layer4}
+        return {
+            "early": ("layer1", b.layer1),
+            "mid": ("layer2", b.layer2),
+            "final": ("layer4", b.layer4),
+        }
 
     # DenseNet-like
     if hasattr(b, "features"):
         feats = b.features
         # Try to hook dense blocks if present
         if all(hasattr(feats, n) for n in ("denseblock1", "denseblock2", "denseblock4")):
-            return {"early": feats.denseblock1, "mid": feats.denseblock2, "final": feats.denseblock4}
+            return {
+                "early": ("features.denseblock1", feats.denseblock1),
+                "mid": ("features.denseblock2", feats.denseblock2),
+                "final": ("features.denseblock4", feats.denseblock4),
+            }
         # Fallback: first/middle/last child in features
         children = list(feats.named_children())
         if len(children) >= 3:
-            return {"early": children[0][1], "mid": children[len(children) // 2][1], "final": children[-1][1]}
+            return {
+                "early": (f"features.{children[0][0]}", children[0][1]),
+                "mid": (f"features.{children[len(children) // 2][0]}", children[len(children) // 2][1]),
+                "final": (f"features.{children[-1][0]}", children[-1][1]),
+            }
 
     # EfficientNet-like (timm)
     if hasattr(b, "blocks"):
         blocks = b.blocks
         n = len(blocks) if hasattr(blocks, "__len__") else 0
         if n >= 3:
-            return {"early": blocks[0], "mid": blocks[n // 2], "final": blocks[-1]}
-        return {"early": blocks, "mid": blocks, "final": blocks}
+            return {
+                "early": ("blocks.0", blocks[0]),
+                "mid": (f"blocks.{n // 2}", blocks[n // 2]),
+                "final": (f"blocks.{n - 1}", blocks[-1]),
+            }
+        return {
+            "early": ("blocks", blocks),
+            "mid": ("blocks", blocks),
+            "final": ("blocks", blocks),
+        }
 
     # Generic fallback: pick first/mid/last top-level child
     kids = list(b.named_children())
     if len(kids) >= 3:
-        return {"early": kids[0][1], "mid": kids[len(kids) // 2][1], "final": kids[-1][1]}
+        return {
+            "early": (kids[0][0], kids[0][1]),
+            "mid": (kids[len(kids) // 2][0], kids[len(kids) // 2][1]),
+            "final": (kids[-1][0], kids[-1][1]),
+        }
     if len(kids) == 1:
-        return {"early": kids[0][1], "mid": kids[0][1], "final": kids[0][1]}
+        return {
+            "early": (kids[0][0], kids[0][1]),
+            "mid": (kids[0][0], kids[0][1]),
+            "final": (kids[0][0], kids[0][1]),
+        }
     raise ValueError("Could not pick hook modules for this model.")
+
+
+def get_depth_layer_selection(model: nn.Module) -> Dict[str, str]:
+    """Returns the selected layer/module names for early/mid/final depth hooks."""
+    picked = _pick_hook_modules_with_names(model)
+    return {k: v[0] for k, v in picked.items()}
 
 
 @torch.no_grad()
@@ -215,7 +249,8 @@ def extract_features_at_depths(
     if ds is not None and hasattr(ds, "classes"):
         class_names = list(ds.classes)
 
-    hooks = _pick_hook_modules(model)
+    picked = _pick_hook_modules_with_names(model)
+    hooks: Dict[str, nn.Module] = {k: v[1] for k, v in picked.items()}
 
     # Accumulate features per depth across batches
     feats_by_depth: Dict[str, List[np.ndarray]] = {k: [] for k in hooks.keys()}
@@ -427,3 +462,88 @@ def visualize_features_pca_tsne(
     )
 
     return pca_path, tsne_path
+
+
+def compute_feature_norm_stats(depth_features: DepthFeatureSet) -> Dict[str, Dict[str, float]]:
+    """
+    Computes L2-norm statistics for each depth feature matrix.
+    Returns depth -> {mean, std, median}.
+    """
+    out: Dict[str, Dict[str, float]] = {}
+    for depth, X in depth_features.features_by_depth.items():
+        if X.size == 0:
+            out[depth] = {"mean": float("nan"), "std": float("nan"), "median": float("nan")}
+            continue
+        norms = np.linalg.norm(X, axis=1)
+        out[depth] = {
+            "mean": float(np.mean(norms)),
+            "std": float(np.std(norms)),
+            "median": float(np.median(norms)),
+        }
+    return out
+
+
+def plot_feature_norm_stats(
+    norm_stats: Dict[str, Dict[str, float]],
+    *,
+    out_path: str | Path,
+    title: str = "Feature Norm Statistics vs Depth",
+) -> Path:
+    """Bar plot of mean feature L2 norm with std error bars across depths."""
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    order = ["early", "mid", "final"]
+    means = [norm_stats.get(k, {}).get("mean", float("nan")) for k in order]
+    stds = [norm_stats.get(k, {}).get("std", 0.0) for k in order]
+
+    x = np.arange(len(order))
+    plt.figure(figsize=(6, 4))
+    plt.bar(x, means, yerr=stds, capsize=4)
+    plt.xticks(x, order)
+    plt.ylabel("Feature L2 Norm")
+    plt.xlabel("Depth")
+    plt.title(title)
+    plt.grid(True, axis="y", linestyle="--", linewidth=0.5, alpha=0.6)
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=160)
+    plt.close()
+    return out_path
+
+
+def plot_depthwise_pca_2d(
+    depth_features: DepthFeatureSet,
+    *,
+    out_path: str | Path,
+    title_prefix: str = "PCA (2D) on Fixed Subset",
+) -> Path:
+    """
+    Creates one figure with PCA projections for early/mid/final depths.
+    Assumes labels correspond to the same fixed sample set across depths.
+    """
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    order = ["early", "mid", "final"]
+    y = depth_features.labels
+
+    fig, axs = plt.subplots(1, 3, figsize=(15, 4.5), constrained_layout=True)
+    for i, depth in enumerate(order):
+        X = depth_features.features_by_depth.get(depth)
+        ax = axs[i]
+        if X is None or X.size == 0:
+            ax.set_title(f"{depth} (empty)")
+            ax.axis("off")
+            continue
+
+        p2 = PCA(n_components=2, random_state=1337).fit_transform(X)
+        ax.scatter(p2[:, 0], p2[:, 1], c=y, s=10, alpha=0.7, cmap="tab20")
+        ax.set_title(f"{depth}")
+        ax.set_xlabel("dim-1")
+        if i == 0:
+            ax.set_ylabel("dim-2")
+
+    fig.suptitle(title_prefix)
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
+    return out_path

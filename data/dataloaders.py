@@ -116,6 +116,61 @@ def build_subset_trainloaders(
 
     return train_loaders, val_loader
 
+
+def build_fixed_val_subset_loader(
+    data_root: Path,
+    image_size: int,
+    batch_size: int,
+    num_workers: int,
+    *,
+    samples_per_class: int = 30,
+    seed: int = 1337,
+    pin_memory: bool = True,
+    persistent_workers: Optional[bool] = None,
+) -> DataLoader:
+    """
+    Build a deterministic validation subset with exactly `samples_per_class`
+    images per class (for fixed-sample analyses such as Scenario-5 PCA).
+    """
+    if samples_per_class <= 0:
+        raise ValueError("samples_per_class must be > 0")
+
+    _, eval_tf = build_transforms(image_size)
+    val_ds = datasets.ImageFolder(str(data_root / "val"), transform=eval_tf)
+
+    class_to_indices: Dict[int, list[int]] = {}
+    for idx, y in enumerate(val_ds.targets):
+        class_to_indices.setdefault(int(y), []).append(idx)
+
+    g = torch.Generator().manual_seed(seed)
+    selected: list[int] = []
+    for cls in sorted(class_to_indices.keys()):
+        idxs = class_to_indices[cls]
+        if len(idxs) < samples_per_class:
+            raise ValueError(
+                f"Class {cls} has only {len(idxs)} samples in val; "
+                f"needs at least {samples_per_class}."
+            )
+
+        perm = torch.randperm(len(idxs), generator=g).tolist()
+        chosen = [idxs[i] for i in perm[:samples_per_class]]
+        selected.extend(chosen)
+
+    selected = sorted(selected)
+    subset = Subset(val_ds, selected)
+
+    if persistent_workers is None:
+        persistent_workers = num_workers > 0
+
+    return DataLoader(
+        subset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        persistent_workers=persistent_workers,
+    )
+
 class AddGaussianNoise(torch.nn.Module):
     """
     Expects input tensor in [0, 1] before Normalize (recommended placement: after ToTensor, before Normalize).
