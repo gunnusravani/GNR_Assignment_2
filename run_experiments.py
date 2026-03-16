@@ -560,7 +560,6 @@ def run() -> None:
                             **row_base,
                             "epochs": CFG.few_shot_epochs,
                             "few_shot_frac": frac,
-                            "ckpt": str(train_res_frac.best_ckpt),
                             "val_acc": val_acc_frac,
                             "train_acc_last": train_acc_last,
                             "val_acc_last": val_acc_last,
@@ -725,7 +724,6 @@ def run() -> None:
                         **row_base,
                         "scenario": "fine_tune",
                         "transfer_mode": mode,
-                        "ckpt": str(train_res_mode.best_ckpt),
                         "val_acc": val_acc_mode,
                         "trainable_params": int(summary.trainable_params),
                         "total_params": int(summary.total_params),
@@ -776,7 +774,6 @@ def run() -> None:
 
             row = {
                 **row_base,
-                "ckpt": str(ckpt),
                 "val_acc": clean_acc,
                 "seconds": round(time.time() - t0, 2),
             }
