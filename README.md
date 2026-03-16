@@ -19,7 +19,7 @@ pip install -r requirements.txt
 Expected folder structure:
 
 ```text
-AID_split/
+AID/
   train/
     <class_name>/*.jpg
   val/
@@ -27,7 +27,7 @@ AID_split/
 ```
 
 The default path is configured in `config.py`:
-- `data_root = Path("AID_split")`
+- `data_root = Path("AID")`
 
 ## 3. Output and Checkpoint Paths
 

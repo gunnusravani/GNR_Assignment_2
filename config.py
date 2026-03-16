@@ -4,7 +4,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class Config:
     # --- Paths (edit these) ---
-    data_root: Path = Path("AID_split")  # expects ImageFolder-like: AID_split/train/<class>/*.jpg etc.
+    data_root: Path = Path("AID")  # expects ImageFolder-like: AID/train/<class>/*.jpg etc.
     output_dir: Path = Path("results")
     checkpoint_dir: Path = Path("model_checkpoints")
 
