@@ -2,10 +2,13 @@
 \centering
 \caption{Robustness comparison: clean vs corrupted validation accuracy (best corruption-run per backbone).}
 \label{tab:robustness\_comparison}
-\begin{tabular}{llllll}
+\begin{tabular}{llllllll}
 \toprule
-backbone & clean\_val\_acc & corruption\_mean\_acc & corruption\_worst\_acc & mean\_drop & worst\_drop \\
+backbone & clean\_val\_acc & corruption\_mean\_acc & corruption\_mean\_error & relative\_robustness\_mean & corruption\_worst\_acc & mean\_drop & worst\_drop \\
 \midrule
+densenet121 & 0.9553 & 0.5880 & 0.4120 & 0.6156 & 0.0334 & 0.3672 & 0.9219 \\
+inception\_v3 & 0.8740 & 0.6987 & 0.3013 & 0.7994 & 0.2311 & 0.1754 & 0.6429 \\
+resnet50 & 0.9595 & 0.6104 & 0.3896 & 0.6361 & 0.0298 & 0.3491 & 0.9297 \\
 \bottomrule
 \end{tabular}
 \end{table}

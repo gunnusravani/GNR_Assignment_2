@@ -6,12 +6,15 @@
 \toprule
 backbone & scenario & transfer\_mode & val\_acc & trainable\_params & trainable\_frac & acc\_per\_m\_trainable\_params \\
 \midrule
+densenet121 & corruption & last\_block & 0.9553 & 2190878 & 0.3137 & 0.4360 \\
 densenet121 & few\_shot & selective\_20 & 0.9496 & 1504990 & 0.2155 & 0.6310 \\
 densenet121 & fine\_tune & last\_block & 0.9545 & 2190878 & 0.3137 & 0.4357 \\
 densenet121 & linear\_probe & linear\_probe & 0.9205 & 30750 & 0.0044 & 29.9335 \\
+inception\_v3 & corruption & last\_block & 0.8740 & 61470 & 0.0028 & 14.2185 \\
 inception\_v3 & few\_shot & selective\_20 & 0.9205 & 4695070 & 0.2149 & 0.1960 \\
 inception\_v3 & fine\_tune & full\_ft & 0.9403 & 21847038 & 1.0000 & 0.0430 \\
 inception\_v3 & linear\_probe & linear\_probe & 0.8821 & 61470 & 0.0028 & 14.3501 \\
+resnet50 & corruption & last\_block & 0.9595 & 15026206 & 0.6375 & 0.0639 \\
 resnet50 & few\_shot & selective\_20 & 0.9339 & 5576734 & 0.2366 & 0.1675 \\
 resnet50 & fine\_tune & last\_block & 0.9602 & 15026206 & 0.6375 & 0.0639 \\
 resnet50 & linear\_probe & linear\_probe & 0.8913 & 61470 & 0.0026 & 14.5003 \\
