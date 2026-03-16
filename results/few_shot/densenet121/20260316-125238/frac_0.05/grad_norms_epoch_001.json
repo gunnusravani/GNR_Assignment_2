@@ -1,0 +1,250 @@
+{
+  "classifier.bias": {
+    "max": 0.21328531205654144,
+    "mean": 0.1850351161426968
+  },
+  "classifier.weight": {
+    "max": 4.407464981079102,
+    "mean": 3.984903759426541
+  },
+  "features.denseblock4.denselayer10.conv1.weight": {
+    "max": 0.4671049118041992,
+    "mean": 0.4450483520825704
+  },
+  "features.denseblock4.denselayer10.conv2.weight": {
+    "max": 0.23695805668830872,
+    "mean": 0.21638159619437325
+  },
+  "features.denseblock4.denselayer10.norm1.bias": {
+    "max": 0.009517495520412922,
+    "mean": 0.008657273422512744
+  },
+  "features.denseblock4.denselayer10.norm1.weight": {
+    "max": 0.020172305405139923,
+    "mean": 0.018474096432328224
+  },
+  "features.denseblock4.denselayer10.norm2.bias": {
+    "max": 0.017979122698307037,
+    "mean": 0.014300037175416946
+  },
+  "features.denseblock4.denselayer10.norm2.weight": {
+    "max": 0.03320257365703583,
+    "mean": 0.027990578156378534
+  },
+  "features.denseblock4.denselayer11.conv1.weight": {
+    "max": 0.507063627243042,
+    "mean": 0.4568579461839464
+  },
+  "features.denseblock4.denselayer11.conv2.weight": {
+    "max": 0.22852781414985657,
+    "mean": 0.2114386111497879
+  },
+  "features.denseblock4.denselayer11.norm1.bias": {
+    "max": 0.008132848888635635,
+    "mean": 0.00770358166967829
+  },
+  "features.denseblock4.denselayer11.norm1.weight": {
+    "max": 0.01937602274119854,
+    "mean": 0.017321050787965458
+  },
+  "features.denseblock4.denselayer11.norm2.bias": {
+    "max": 0.015998587012290955,
+    "mean": 0.012579050018555589
+  },
+  "features.denseblock4.denselayer11.norm2.weight": {
+    "max": 0.03724764287471771,
+    "mean": 0.029668776111470327
+  },
+  "features.denseblock4.denselayer12.conv1.weight": {
+    "max": 0.4874366521835327,
+    "mean": 0.4433007770114475
+  },
+  "features.denseblock4.denselayer12.conv2.weight": {
+    "max": 0.22580645978450775,
+    "mean": 0.2041327522860633
+  },
+  "features.denseblock4.denselayer12.norm1.bias": {
+    "max": 0.008008541539311409,
+    "mean": 0.007084017774711053
+  },
+  "features.denseblock4.denselayer12.norm1.weight": {
+    "max": 0.01845679059624672,
+    "mean": 0.016356567334797647
+  },
+  "features.denseblock4.denselayer12.norm2.bias": {
+    "max": 0.013165601529181004,
+    "mean": 0.01135035055792994
+  },
+  "features.denseblock4.denselayer12.norm2.weight": {
+    "max": 0.026740476489067078,
+    "mean": 0.024040090541044872
+  },
+  "features.denseblock4.denselayer13.conv1.weight": {
+    "max": 0.48764997720718384,
+    "mean": 0.4558198783132765
+  },
+  "features.denseblock4.denselayer13.conv2.weight": {
+    "max": 0.2145233303308487,
+    "mean": 0.19778456290562949
+  },
+  "features.denseblock4.denselayer13.norm1.bias": {
+    "max": 0.007164468988776207,
+    "mean": 0.0067249915769530665
+  },
+  "features.denseblock4.denselayer13.norm1.weight": {
+    "max": 0.016554424539208412,
+    "mean": 0.015342694086333116
+  },
+  "features.denseblock4.denselayer13.norm2.bias": {
+    "max": 0.015528502874076366,
+    "mean": 0.012259229086339474
+  },
+  "features.denseblock4.denselayer13.norm2.weight": {
+    "max": 0.03630126640200615,
+    "mean": 0.029395149192876287
+  },
+  "features.denseblock4.denselayer14.conv1.weight": {
+    "max": 0.4802255630493164,
+    "mean": 0.41584298345777726
+  },
+  "features.denseblock4.denselayer14.conv2.weight": {
+    "max": 0.24123893678188324,
+    "mean": 0.2020484275288052
+  },
+  "features.denseblock4.denselayer14.norm1.bias": {
+    "max": 0.008890441618859768,
+    "mean": 0.0074619124126103185
+  },
+  "features.denseblock4.denselayer14.norm1.weight": {
+    "max": 0.019594451412558556,
+    "mean": 0.01704456926219993
+  },
+  "features.denseblock4.denselayer14.norm2.bias": {
+    "max": 0.014669198542833328,
+    "mean": 0.011538809889720546
+  },
+  "features.denseblock4.denselayer14.norm2.weight": {
+    "max": 0.02926921471953392,
+    "mean": 0.023736547057827313
+  },
+  "features.denseblock4.denselayer15.conv1.weight": {
+    "max": 0.43335863947868347,
+    "mean": 0.4154580798414018
+  },
+  "features.denseblock4.denselayer15.conv2.weight": {
+    "max": 0.20026138424873352,
+    "mean": 0.19347492357095084
+  },
+  "features.denseblock4.denselayer15.norm1.bias": {
+    "max": 0.00779434060677886,
+    "mean": 0.007071941521846586
+  },
+  "features.denseblock4.denselayer15.norm1.weight": {
+    "max": 0.017375804483890533,
+    "mean": 0.015997912734746933
+  },
+  "features.denseblock4.denselayer15.norm2.bias": {
+    "max": 0.015310976654291153,
+    "mean": 0.013443781890802912
+  },
+  "features.denseblock4.denselayer15.norm2.weight": {
+    "max": 0.030429180711507797,
+    "mean": 0.026566925769050915
+  },
+  "features.denseblock4.denselayer16.conv1.weight": {
+    "max": 0.49108561873435974,
+    "mean": 0.46336665087276036
+  },
+  "features.denseblock4.denselayer16.conv2.weight": {
+    "max": 0.22336158156394958,
+    "mean": 0.20930719375610352
+  },
+  "features.denseblock4.denselayer16.norm1.bias": {
+    "max": 0.008083061315119267,
+    "mean": 0.007255626635418998
+  },
+  "features.denseblock4.denselayer16.norm1.weight": {
+    "max": 0.018318720161914825,
+    "mean": 0.017352201458480623
+  },
+  "features.denseblock4.denselayer16.norm2.bias": {
+    "max": 0.012489141896367073,
+    "mean": 0.010745776817202568
+  },
+  "features.denseblock4.denselayer16.norm2.weight": {
+    "max": 0.033229563385248184,
+    "mean": 0.027874972878230944
+  },
+  "features.denseblock4.denselayer7.conv1.weight": {
+    "max": 0.5393228530883789,
+    "mean": 0.4802342719501919
+  },
+  "features.denseblock4.denselayer7.conv2.weight": {
+    "max": 0.26052525639533997,
+    "mean": 0.23987782498200735
+  },
+  "features.denseblock4.denselayer7.norm2.bias": {
+    "max": 0.016073940321803093,
+    "mean": 0.013280216397510635
+  },
+  "features.denseblock4.denselayer7.norm2.weight": {
+    "max": 0.0423160120844841,
+    "mean": 0.033156245946884155
+  },
+  "features.denseblock4.denselayer8.conv1.weight": {
+    "max": 0.561356246471405,
+    "mean": 0.48246286312739056
+  },
+  "features.denseblock4.denselayer8.conv2.weight": {
+    "max": 0.25059494376182556,
+    "mean": 0.24079925815264383
+  },
+  "features.denseblock4.denselayer8.norm1.bias": {
+    "max": 0.009567835368216038,
+    "mean": 0.007572956434968445
+  },
+  "features.denseblock4.denselayer8.norm1.weight": {
+    "max": 0.019303571432828903,
+    "mean": 0.015777403592235513
+  },
+  "features.denseblock4.denselayer8.norm2.bias": {
+    "max": 0.021235937252640724,
+    "mean": 0.015764615395002894
+  },
+  "features.denseblock4.denselayer8.norm2.weight": {
+    "max": 0.046603817492723465,
+    "mean": 0.03623550198972225
+  },
+  "features.denseblock4.denselayer9.conv1.weight": {
+    "max": 0.5378289818763733,
+    "mean": 0.4977494776248932
+  },
+  "features.denseblock4.denselayer9.conv2.weight": {
+    "max": 0.259596586227417,
+    "mean": 0.24054395490222508
+  },
+  "features.denseblock4.denselayer9.norm1.bias": {
+    "max": 0.012430339120328426,
+    "mean": 0.010565634713404708
+  },
+  "features.denseblock4.denselayer9.norm1.weight": {
+    "max": 0.03804970532655716,
+    "mean": 0.027577559153238933
+  },
+  "features.denseblock4.denselayer9.norm2.bias": {
+    "max": 0.017231274396181107,
+    "mean": 0.014101781364944246
+  },
+  "features.denseblock4.denselayer9.norm2.weight": {
+    "max": 0.03205065801739693,
+    "mean": 0.028962315577599738
+  },
+  "features.norm5.bias": {
+    "max": 0.019232850521802902,
+    "mean": 0.017289669770333502
+  },
+  "features.norm5.weight": {
+    "max": 0.03783657029271126,
+    "mean": 0.03361396181086699
+  }
+}

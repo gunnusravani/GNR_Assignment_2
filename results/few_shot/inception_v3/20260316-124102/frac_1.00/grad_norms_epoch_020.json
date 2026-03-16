@@ -1,0 +1,94 @@
+{
+  "Mixed_7c.branch3x3_2a.bn.bias": {
+    "max": 0.10788888484239578,
+    "mean": 0.015944187282750915
+  },
+  "Mixed_7c.branch3x3_2a.bn.weight": {
+    "max": 0.09381426870822906,
+    "mean": 0.013694059692206793
+  },
+  "Mixed_7c.branch3x3_2a.conv.weight": {
+    "max": 0.48932474851608276,
+    "mean": 0.09846173271071165
+  },
+  "Mixed_7c.branch3x3_2b.bn.bias": {
+    "max": 0.10266545414924622,
+    "mean": 0.01602791804263169
+  },
+  "Mixed_7c.branch3x3_2b.bn.weight": {
+    "max": 0.09207290410995483,
+    "mean": 0.013723251379435948
+  },
+  "Mixed_7c.branch3x3_2b.conv.weight": {
+    "max": 0.492412805557251,
+    "mean": 0.10277690070215613
+  },
+  "Mixed_7c.branch3x3dbl_1.bn.bias": {
+    "max": 0.14965613186359406,
+    "mean": 0.01897540326055605
+  },
+  "Mixed_7c.branch3x3dbl_1.bn.weight": {
+    "max": 0.252770334482193,
+    "mean": 0.03174226184458738
+  },
+  "Mixed_7c.branch3x3dbl_1.conv.weight": {
+    "max": 1.632228136062622,
+    "mean": 0.2226973192353866
+  },
+  "Mixed_7c.branch3x3dbl_2.bn.bias": {
+    "max": 0.05679094418883324,
+    "mean": 0.009713665981169989
+  },
+  "Mixed_7c.branch3x3dbl_2.bn.weight": {
+    "max": 0.09305746108293533,
+    "mean": 0.013289589372413632
+  },
+  "Mixed_7c.branch3x3dbl_2.conv.weight": {
+    "max": 0.38986659049987793,
+    "mean": 0.063447099742147
+  },
+  "Mixed_7c.branch3x3dbl_3a.bn.bias": {
+    "max": 0.106956347823143,
+    "mean": 0.015375996029636423
+  },
+  "Mixed_7c.branch3x3dbl_3a.bn.weight": {
+    "max": 0.06421390920877457,
+    "mean": 0.009361894138897436
+  },
+  "Mixed_7c.branch3x3dbl_3a.conv.weight": {
+    "max": 0.1877729445695877,
+    "mean": 0.03428489635049898
+  },
+  "Mixed_7c.branch3x3dbl_3b.bn.bias": {
+    "max": 0.10886316746473312,
+    "mean": 0.016901992744616498
+  },
+  "Mixed_7c.branch3x3dbl_3b.bn.weight": {
+    "max": 0.05813855677843094,
+    "mean": 0.009771811349990977
+  },
+  "Mixed_7c.branch3x3dbl_3b.conv.weight": {
+    "max": 0.19598406553268433,
+    "mean": 0.03742582568832274
+  },
+  "Mixed_7c.branch_pool.bn.bias": {
+    "max": 0.13756653666496277,
+    "mean": 0.020677136750891806
+  },
+  "Mixed_7c.branch_pool.bn.weight": {
+    "max": 0.11316312849521637,
+    "mean": 0.01821869111229067
+  },
+  "Mixed_7c.branch_pool.conv.weight": {
+    "max": 1.080243468284607,
+    "mean": 0.21794609855394811
+  },
+  "fc.bias": {
+    "max": 0.11947996914386749,
+    "mean": 0.018047436544854592
+  },
+  "fc.weight": {
+    "max": 1.7242990732192993,
+    "mean": 0.27824883553066426
+  }
+}
