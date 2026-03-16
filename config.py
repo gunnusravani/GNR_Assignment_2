@@ -28,7 +28,7 @@ class Config:
 
     # --- Experiments ---
     exp_models: tuple[str, ...] = ("resnet50", "inception_v3", "densenet121")
-    exp_scenarios: tuple[str, ...] = ("corruption",)
+    exp_scenarios: tuple[str, ...] = ("layer_probe",)
     fine_tune_modes: tuple[str, ...] = ("linear_probe", "last_block", "full_ft", "selective_20")
 
     # Scenario knobs
@@ -37,6 +37,7 @@ class Config:
     few_shot_seed: int = 1337
     few_shot_epochs: int = 20
     layer_probe_max_batches: int | None = None  # cap feature extraction batches (None = full)
+    layer_probe_samples_per_class: int = 30
     corruptions_enabled: bool = True
 
     # Experiment runner I/O

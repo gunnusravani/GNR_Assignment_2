@@ -14,6 +14,7 @@ from data.dataloaders import (
     build_dataloaders,
     build_subset_trainloaders,
     build_corrupted_eval_datasets,
+    build_fixed_val_subset_loader,
 )
 from models.backbone import TransferSummary, build_model, set_transfer_mode
 from experiments.trainer import TrainResult, train as train_one, evaluate as eval_one
@@ -25,6 +26,10 @@ from analysis.feature_visualization import (
     train_linear_classifiers_on_depths,
     plot_val_accuracy_vs_depth,
     visualize_features_pca_tsne,
+    get_depth_layer_selection,
+    compute_feature_norm_stats,
+    plot_feature_norm_stats,
+    plot_depthwise_pca_2d,
 )
 from analysis.metrics import (
     compute_classification_metrics,
@@ -612,9 +617,39 @@ def run() -> None:
                     model, val_loader, device=_device(), max_batches=CFG.layer_probe_max_batches
                 )
                 accs = train_linear_classifiers_on_depths(feats_tr, feats_va)
+                layer_map = get_depth_layer_selection(model)
+                norm_stats = compute_feature_norm_stats(feats_va)
 
                 plot_path = plot_val_accuracy_vs_depth(
                     accs, out_path=run_dir / "val_acc_vs_depth.png"
+                )
+
+                norm_plot_path = plot_feature_norm_stats(
+                    norm_stats,
+                    out_path=run_dir / "feature_norm_vs_depth.png",
+                    title=f"{backbone}: feature norm statistics vs depth",
+                )
+
+                fixed_val_loader = build_fixed_val_subset_loader(
+                    data_root=CFG.data_root,
+                    image_size=CFG.image_size,
+                    batch_size=CFG.batch_size,
+                    num_workers=CFG.num_workers,
+                    samples_per_class=CFG.layer_probe_samples_per_class,
+                    seed=CFG.seed,
+                    pin_memory=CFG.pin_memory,
+                    persistent_workers=CFG.persistent_workers,
+                )
+                feats_fixed = extract_features_at_depths(
+                    model, fixed_val_loader, device=_device(), max_batches=None
+                )
+                pca_depth_path = plot_depthwise_pca_2d(
+                    feats_fixed,
+                    out_path=run_dir / "pca_2d_across_depths_fixed_subset.png",
+                    title_prefix=(
+                        f"{backbone}: PCA(2D) across depths "
+                        f"(fixed subset: {CFG.layer_probe_samples_per_class}/class)"
+                    ),
                 )
 
                 row = {
@@ -622,7 +657,20 @@ def run() -> None:
                     "val_acc_early": accs.get("early", float("nan")),
                     "val_acc_mid": accs.get("mid", float("nan")),
                     "val_acc_final": accs.get("final", float("nan")),
-                    "plot_path": str(plot_path),
+                    "layer_early": layer_map.get("early", ""),
+                    "layer_mid": layer_map.get("mid", ""),
+                    "layer_final": layer_map.get("final", ""),
+                    "norm_mean_early": norm_stats.get("early", {}).get("mean", float("nan")),
+                    "norm_mean_mid": norm_stats.get("mid", {}).get("mean", float("nan")),
+                    "norm_mean_final": norm_stats.get("final", {}).get("mean", float("nan")),
+                    "norm_std_early": norm_stats.get("early", {}).get("std", float("nan")),
+                    "norm_std_mid": norm_stats.get("mid", {}).get("std", float("nan")),
+                    "norm_std_final": norm_stats.get("final", {}).get("std", float("nan")),
+                    "artifact_val_acc_vs_depth": str(plot_path),
+                    "artifact_feature_norm_vs_depth": str(norm_plot_path),
+                    "artifact_pca_2d_across_depths_fixed_subset": str(pca_depth_path),
+                    "fixed_subset_samples_per_class": int(CFG.layer_probe_samples_per_class),
+                    "fixed_subset_total_samples": int(CFG.layer_probe_samples_per_class * CFG.num_classes),
                     "seconds": round(time.time() - t0, 2),
                 }
 

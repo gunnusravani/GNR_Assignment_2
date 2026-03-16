@@ -623,6 +623,27 @@ All runs show strong memorization pressure at 5\%: train accuracy approaches 1.0
 \section{Objective}
 Compare clean-vs-corrupted accuracy under Gaussian noise, motion blur, and brightness shift.
 
+\section{Settings and Evaluation Protocol}
+\textbf{Checkpoint source:}
+\begin{itemize}
+  \item Scenario 1 best \texttt{linear\_probe} checkpoints (one per backbone).
+  \item Scenario 2 best checkpoints for \texttt{selective\_20}, \texttt{last\_block}, and \texttt{full\_ft}.
+  \item Duplicate \texttt{linear\_probe} from Scenario 2 was excluded to avoid repeated evaluation.
+\end{itemize}
+
+\textbf{Corruption settings:}
+\begin{itemize}
+  \item Gaussian noise: $\sigma \in \{0.05, 0.10, 0.20\}$.
+  \item Motion blur: horizontal and vertical blur, kernel size $k=9$.
+  \item Brightness shift: additive deltas $\Delta b \in \{-0.20, -0.10, +0.10, +0.20\}$.
+\end{itemize}
+
+\textbf{How corruptions are applied:} corruptions are injected \emph{only at evaluation time} on validation images with transform order
+\[
+\texttt{Resize} \rightarrow \texttt{ToTensor} \rightarrow \texttt{Corruption} \rightarrow \texttt{Normalize}.
+\]
+Training data and training procedure are unchanged; no additional training is done for Scenario 4.
+
 \section{Metrics}
 Corruption error:
 \begin{equation}
@@ -636,17 +657,51 @@ Relative robustness:
 
 \begin{table}[H]
 \centering
-\caption{Robustness summary}
+\caption{Scenario 4 robustness summary (best mean-corruption checkpoint per backbone).}
 \label{tab:s4}
-\begin{tabular}{lllllll}
+\scriptsize
+\begin{tabular}{llllllll}
 \toprule
 \rowcolor{tableheader}
-\textbf{Backbone} & \textbf{Clean Acc} & \textbf{Mean Corr Acc} & \textbf{Worst Corr Acc} & \textbf{Mean Drop} & \textbf{Worst Drop} & \textbf{Notes} \\
+\textbf{Backbone} & \textbf{Mode} & \textbf{Clean Acc} & \textbf{Mean Corr Acc} & \textbf{Corr. Error} & \textbf{Rel. Robust.} & \textbf{Worst Corr.} & \textbf{Worst Acc} \\
 \midrule
-<fill> & <fill> & <fill> & <fill> & <fill> & <fill> & <fill> \\
+ResNet50 & full\_ft & 0.9602 & 0.7496 & 0.2504 & 0.7807 & gaussian $\sigma=0.2$ & 0.1385 \\
+Inception-v3 & full\_ft & 0.9403 & 0.7284 & 0.2716 & 0.7746 & gaussian $\sigma=0.2$ & 0.1842 \\
+DenseNet121 & full\_ft & 0.9503 & 0.7775 & 0.2225 & 0.8181 & gaussian $\sigma=0.2$ & 0.2233 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{table}[H]
+\centering
+\caption{Per-corruption validation accuracy (best mode per backbone from Table~\ref{tab:s4}).}
+\label{tab:s4-per-corruption}
+\scriptsize
+\begin{tabular}{lcccccc}
+\toprule
+\rowcolor{tableheader}
+\textbf{Backbone} & \textbf{Gauss 0.05} & \textbf{Gauss 0.10} & \textbf{Gauss 0.20} & \textbf{Motion-H} & \textbf{Motion-V} & \textbf{Brightness (-0.20/+0.20)} \\
+\midrule
+ResNet50 & 0.8932 & 0.5941 & 0.1385 & 0.6938 & 0.6746 & 0.9109 / 0.9418 \\
+Inception-v3 & 0.8175 & 0.5631 & 0.1842 & 0.6873 & 0.6770 & 0.8658 / 0.9070 \\
+DenseNet121 & 0.9169 & 0.7110 & 0.2233 & 0.6918 & 0.7666 & 0.8764 / 0.9325 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Scenario 4 Analysis}
+\textbf{Overall ranking:} using mean corrupted accuracy, DenseNet121 is most robust (0.7775), followed by ResNet50 (0.7496), then Inception-v3 (0.7284).
+
+\textbf{Dominant failure mode:} Gaussian noise is consistently the hardest corruption, with worst-case always at $\sigma=0.2$. This indicates strongest sensitivity to high-frequency stochastic perturbations that disrupt local texture and edge statistics.
+
+\textbf{Corruption-specific behavior:}
+\begin{itemize}
+  \item Brightness shifts cause the smallest degradation overall (all three models remain comparatively high).
+  \item Motion blur is moderately harmful, with vertical/horizontal asymmetry varying by architecture.
+  \item Gaussian noise causes the steepest non-linear collapse as $\sigma$ increases from 0.10 to 0.20.
+\end{itemize}
+
+\textbf{Architecture trend:} DenseNet121's dense feature reuse appears to improve tolerance to moderate shift/blur and preserves the highest mean robustness. ResNet50 behaves similarly but with slightly lower robustness under severe noise. Inception-v3 remains competitive on clean data but exhibits larger drop under strong noise, suggesting higher reliance on fine-grained local structures disrupted by additive perturbations.
 
 %==============================================================================
 \chapter{Scenario 5: Layer-Wise Feature Probing}
