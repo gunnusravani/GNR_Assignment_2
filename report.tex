@@ -710,6 +710,22 @@ DenseNet121 & 0.9169 & 0.7110 & 0.2233 & 0.6918 & 0.7666 & 0.8764 / 0.9325 \\
 \section{Objective}
 Analyze feature quality at early, middle, and final layers.
 
+\section{Settings, Parameters, and Architecture-Specific Layer Selection}
+\textbf{Training/evaluation setup for probing:}
+\begin{itemize}
+  \item One model per backbone was first adapted using \texttt{full\_ft}.
+  \item Epochs: 30, Batch size: 32, Image size: 299, Seed: 1337.
+  \item Depth-wise probes: separate linear classifiers trained on \textit{early}, \textit{mid}, and \textit{final} features.
+  \item Fixed PCA subset: 30 classes $\times$ 30 samples/class = 900 samples; same subset reused across all models and depths.
+\end{itemize}
+
+\textbf{Layer choices (documented from run outputs):}
+\begin{itemize}
+  \item ResNet50: early=\texttt{layer1}, mid=\texttt{layer2}, final=\texttt{layer4}
+  \item Inception-v3: early=\texttt{Conv2d\_1a\_3x3}, mid=\texttt{Mixed\_6a}, final=\texttt{fc}
+  \item DenseNet121: early=\texttt{features.denseblock1}, mid=\texttt{features.denseblock2}, final=\texttt{features.denseblock4}
+\end{itemize}
+
 \section{Required Outputs}
 \begin{itemize}
   \item Validation accuracy vs depth.
@@ -721,28 +737,106 @@ Analyze feature quality at early, middle, and final layers.
 \centering
 \caption{Layer-wise probing summary}
 \label{tab:s5}
-\begin{tabular}{llllll}
+\scriptsize
+\begin{tabular}{lcccccc}
 \toprule
 \rowcolor{tableheader}
-\textbf{Backbone} & \textbf{Acc (early)} & \textbf{Acc (mid)} & \textbf{Acc (final)} & \textbf{Norm trend} & \textbf{Interpretation} \\
+\textbf{Backbone} & \textbf{Acc (early)} & \textbf{Acc (mid)} & \textbf{Acc (final)} & \textbf{Norm mean (E/M/F)} & \textbf{Best depth} & \textbf{Observation} \\
 \midrule
-<fill> & <fill> & <fill> & <fill> & <fill> & <fill> \\
+ResNet50 & 0.8335 & 0.8892 & 0.9643 & 19.25 / 49.68 / 16.06 & final & strong monotonic semantic gain \\
+Inception-v3 & 0.4904 & 0.8964 & 0.9507 & 8.35 / 19.18 / 34.29 & final & very weak early, sharp abstraction jump \\
+DenseNet121 & 0.8034 & 0.8842 & 0.9500 & 119.32 / 63.71 / 67.85 & final & high early norm, cleaner deeper features \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\section{Validation Accuracy vs Depth}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/layer_probe/resnet50/20260316-155803/val_acc_vs_depth.png}
+    \caption{ResNet50}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/layer_probe/inception_v3/20260316-160840/val_acc_vs_depth.png}
+    \caption{Inception-v3}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/layer_probe/densenet121/20260316-161911/val_acc_vs_depth.png}
+    \caption{DenseNet121}
+  \end{subfigure}
+  \caption{Scenario 5: validation accuracy as a function of network depth.}
+  \label{fig:s5-val-vs-depth}
+\end{figure}
+
+\section{Feature Norm Statistics Across Depth}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/layer_probe/resnet50/20260316-155803/feature_norm_vs_depth.png}
+    \caption{ResNet50}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/layer_probe/inception_v3/20260316-160840/feature_norm_vs_depth.png}
+    \caption{Inception-v3}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/layer_probe/densenet121/20260316-161911/feature_norm_vs_depth.png}
+    \caption{DenseNet121}
+  \end{subfigure}
+  \caption{Depth-wise feature L2 norm statistics (mean with std error bars).}
+  \label{fig:s5-norms}
+\end{figure}
+
+\section{PCA (2D) Across Layers on Fixed Subset}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\linewidth]{results/layer_probe/resnet50/20260316-155803/pca_2d_across_depths_fixed_subset.png}
+  \caption{ResNet50: PCA(2D) across early/mid/final on the fixed 900-sample subset.}
+  \label{fig:s5-pca-resnet}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\linewidth]{results/layer_probe/inception_v3/20260316-160840/pca_2d_across_depths_fixed_subset.png}
+  \caption{Inception-v3: PCA(2D) across early/mid/final on the same fixed subset.}
+  \label{fig:s5-pca-inc}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\linewidth]{results/layer_probe/densenet121/20260316-161911/pca_2d_across_depths_fixed_subset.png}
+  \caption{DenseNet121: PCA(2D) across early/mid/final on the same fixed subset.}
+  \label{fig:s5-pca-dense}
+\end{figure}
+
+\section{Scenario 5 Discussion}
+Across all three architectures, probe accuracy increases with depth, confirming semantic abstraction in deeper representations. Final-depth features are most transferable for AID classification: ResNet50 (0.9643), Inception-v3 (0.9507), and DenseNet121 (0.9500).
+
+Early-layer features retain low-level texture/edge cues and show greater class overlap in PCA, especially for Inception-v3 where early-depth accuracy is only 0.4904. Mid layers improve separation as object-part and layout cues emerge, while final layers produce the highest compactness for many classes and the best linear separability.
+
+Feature norm trends are architecture-dependent and should not be interpreted as quality by magnitude alone. DenseNet121 has very high early norms but still gains substantial separability at deeper depths; Inception-v3 shows increasing norms with depth and a large separability jump from early to mid/final; ResNet50 peaks in mid-layer norm yet achieves best separability at final depth. This indicates that representation hierarchy (structure and invariance), not raw norm scale, is the key driver of transferability and robustness.
 
 %==============================================================================
 \chapter{Cross-Scenario Analysis}
 %==============================================================================
 
 \section{Accuracy and Efficiency Trade-offs}
-Use generated tables in \texttt{results/tables/}: accuracy comparison, robustness comparison, and parameter efficiency.
+Cross-scenario trends from \texttt{results/tables/accuracy\_comparison.csv}, \texttt{results/tables/robustness\_comparison.csv}, and \texttt{results/tables/parameter\_efficiency.csv} show a consistent trade-off:
+\begin{itemize}
+  \item \textbf{Highest absolute clean accuracy:} fine-tuning with deeper adaptation (mostly \texttt{last\_block} or \texttt{full\_ft}) reaches the top clean validation scores.
+  \item \textbf{Highest parameter efficiency:} linear probing gives far higher accuracy per million trainable parameters than full fine-tuning.
+  \item \textbf{Data efficiency:} at 100\% data in few-shot protocol, \texttt{selective\_20} remains close to fine-tune peaks while training far fewer parameters.
+  \item \textbf{Robustness under corruption:} clean-accuracy leaders are not automatically robust to severe noise; corruption sensitivity depends on both architecture and adaptation strategy.
+\end{itemize}
+
+Numerically, DenseNet121 and ResNet50 obtain near-best clean accuracy with \texttt{last\_block}, while Inception-v3 prefers \texttt{full\_ft}. Under corruption, mean relative robustness is highest for Inception-v3 (about 0.799), whereas DenseNet121 and ResNet50 suffer larger worst-case drops under strong Gaussian noise.
 
 \section{Unexpected Finding}
-<fill>
+An unexpected pattern is that high clean accuracy does not guarantee resilience to severe pixel noise. For both ResNet50 and DenseNet121, some corruption-mode checkpoints show near-random accuracy under Gaussian perturbations at high severity, despite strong clean performance. This reveals that adaptation can over-specialize representations toward clean-domain statistics and become brittle to stochastic high-frequency shifts.
 
 \section{Negative/Failure Case}
-<fill>
+The strongest failure case occurs for Gaussian noise (especially $\sigma=0.2$), where corruption error spikes and relative robustness collapses. This failure is much stronger than brightness shift degradation and generally stronger than motion blur, indicating a systematic vulnerability to additive noise rather than a generic failure across all distribution shifts.
 
 %==============================================================================
 \chapter{Computational Budget}
@@ -757,15 +851,18 @@ Use generated tables in \texttt{results/tables/}: accuracy comparison, robustnes
 \rowcolor{tableheader}
 \textbf{Scenario} & \textbf{Backbone} & \textbf{Epochs} & \textbf{Runtime (hh:mm)} & \textbf{Hardware} \\
 \midrule
-Scenario 1 & ResNet50 & 30 & 00:09:38 & <FILL\_HARDWARE> \\
-Scenario 1 & Inception-v3 & 30 & 00:09:14 & <FILL\_HARDWARE> \\
-Scenario 1 & DenseNet121 & 30 & 00:09:27 & <FILL\_HARDWARE> \\
-Scenario 2 & ResNet50 (4 modes) & 30 each & 01:18:21 & <FILL\_HARDWARE> \\
-Scenario 2 & Inception-v3 (4 modes) & 30 each & 01:32:03 & <FILL\_HARDWARE> \\
-Scenario 2 & DenseNet121 (4 modes) & 30 each & 02:16:09 & <FILL\_HARDWARE> \\
-Scenario 3 & ResNet50 (100/20/5\%) & 20 each & 00:26:35 & <FILL\_HARDWARE> \\
-Scenario 3 & Inception-v3 (100/20/5\%) & 20 each & 00:28:22 & <FILL\_HARDWARE> \\
-Scenario 3 & DenseNet121 (100/20/5\%) & 20 each & 00:26:52 & <FILL\_HARDWARE> \\
+Scenario 1 & ResNet50 & 30 & 00:09:38 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
+Scenario 1 & Inception-v3 & 30 & 00:09:14 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
+Scenario 1 & DenseNet121 & 30 & 00:09:27 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
+Scenario 2 & ResNet50 (4 modes) & 30 each & 01:18:21 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
+Scenario 2 & Inception-v3 (4 modes) & 30 each & 01:32:03 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
+Scenario 2 & DenseNet121 (4 modes) & 30 each & 02:16:09 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
+Scenario 3 & ResNet50 (100/20/5\%) & 20 each & 00:26:35 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
+Scenario 3 & Inception-v3 (100/20/5\%) & 20 each & 00:28:22 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
+Scenario 3 & DenseNet121 (100/20/5\%) & 20 each & 00:26:52 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
+Scenario 5 & ResNet50 (layer probe) & 30 & 00:10:37 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
+Scenario 5 & Inception-v3 (layer probe) & 30 & 00:10:31 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
+Scenario 5 & DenseNet121 (layer probe) & 30 & 00:13:06 & NVIDIA A100 80GB PCIe (CUDA 12.4) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -775,11 +872,11 @@ Scenario 3 & DenseNet121 (100/20/5\%) & 20 each & 00:26:52 & <FILL\_HARDWARE> \\
 %==============================================================================
 
 \begin{itemize}
-  \item Best transfer architecture and rationale.
-  \item Most robust architecture and corruption sensitivity pattern.
-  \item Most transferable depth and semantic abstraction trend.
-  \item Fine-tuning conditions that improve/degrade robustness.
-  \item Parameter-efficiency insights.
+  \item \textbf{Best transfer architecture (clean task):} DenseNet121 and ResNet50 are strongest overall on AID with deep adaptation; Inception-v3 is competitive but more sensitive to scenario/strategy.
+  \item \textbf{Most robust architecture (Scenario 4 aggregate):} Inception-v3 shows the highest mean relative robustness, while DenseNet121 can achieve the best mean corrupted accuracy under selected checkpoints.
+  \item \textbf{Most transferable depth:} final-layer features consistently give the highest probe accuracy, confirming increasing semantic abstraction with depth.
+  \item \textbf{Fine-tuning and robustness:} deeper fine-tuning improves clean accuracy but can degrade robustness to strong Gaussian noise when representations overfit clean-domain statistics.
+  \item \textbf{Parameter-efficiency:} linear probing is the most efficient by trainable-parameter budget; selective unfreezing offers a strong middle ground between efficiency and accuracy.
 \end{itemize}
 
 \begin{tcolorbox}[
@@ -798,7 +895,7 @@ Scenario 3 & DenseNet121 (100/20/5\%) & 20 each & 00:26:52 & <FILL\_HARDWARE> \\
   fonttitle=\bfseries,
 ]
 \color{black}%
-<Write your concise final takeaway here after all five scenarios are complete.>
+ImageNet-pretrained CNNs transfer strongly to aerial scene classification, but performance depends critically on adaptation depth and evaluation conditions. Final-layer representations are most semantically useful, selective/deep fine-tuning improves clean accuracy, and robustness under severe Gaussian noise remains a key open weakness. Overall, the best practical compromise is strategy-dependent: use parameter-efficient probing/selective tuning for budgeted deployment, and deeper adaptation with explicit robustness regularization when peak accuracy is required.
 \end{tcolorbox}
 
 \appendix
@@ -818,6 +915,23 @@ python run_experiments.py
   \item Classification report: \texttt{results/linear\_probe/<backbone>/<timestamp>/classification_report.txt}
   \item PCA/t-SNE: \texttt{results/linear\_probe/<backbone>/<timestamp>/feature\_viz/}
   \item Checkpoints: \texttt{model\_checkpoints/linear\_probe/<backbone>/<timestamp>/(best.pt, latest.pt)}
+\end{itemize}
+
+\section{Scenario-4 Artifact Mapping}
+\begin{itemize}
+  \item Corruption results CSV: \texttt{results/results\_corruption.csv}
+  \item Cross-checkpoint corruption CSV: \texttt{results/results\_corruption\_from\_s1\_s2.csv}
+  \item Robustness summary tables: \texttt{results/tables/robustness\_comparison.(csv|tex)}
+  \item Corruption checkpoints: \texttt{model\_checkpoints/corruption/<backbone>/<timestamp>/}
+\end{itemize}
+
+\section{Scenario-5 Artifact Mapping}
+\begin{itemize}
+  \item Layer-probe summary CSV: \texttt{results/results\_layer\_probe.csv}
+  \item Val-accuracy vs depth: \texttt{results/layer\_probe/<backbone>/<timestamp>/val\_acc\_vs\_depth.png}
+  \item Feature norms vs depth: \texttt{results/layer\_probe/<backbone>/<timestamp>/feature\_norm\_vs\_depth.png}
+  \item PCA across depths (fixed subset): \texttt{results/layer\_probe/<backbone>/<timestamp>/pca\_2d\_across\_depths\_fixed\_subset.png}
+  \item Layer-probe checkpoints: \texttt{model\_checkpoints/layer\_probe/<backbone>/<timestamp>/}
 \end{itemize}
 
 \end{document}
