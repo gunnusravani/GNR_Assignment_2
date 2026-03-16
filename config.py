@@ -28,12 +28,14 @@ class Config:
 
     # --- Experiments ---
     exp_models: tuple[str, ...] = ("resnet50", "inception_v3", "densenet121")
-    exp_scenarios: tuple[str, ...] = ("fine_tune",)
+    exp_scenarios: tuple[str, ...] = ("few_shot",)
     fine_tune_modes: tuple[str, ...] = ("linear_probe", "last_block", "full_ft", "selective_20")
 
     # Scenario knobs
-    few_shot_frac: float = 0.05          # uses subset of train set
+    few_shot_frac: float = 0.05          # default single-frac knob (kept for compatibility)
+    few_shot_fracs: tuple[float, ...] = (1.0, 0.2, 0.05)
     few_shot_seed: int = 1337
+    few_shot_epochs: int = 20
     layer_probe_max_batches: int | None = None  # cap feature extraction batches (None = full)
     corruptions_enabled: bool = True
 

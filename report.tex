@@ -181,8 +181,8 @@ Device & CUDA (fallback CPU) \\
 \section{Reproducibility and Artifact Paths}
 \begin{itemize}
   \item Experiment command: \texttt{python run\_experiments.py}
-  \item Results root: \texttt{results/linear\_probe/<backbone>/<timestamp>/}
-  \item Checkpoints root: \texttt{model\_checkpoints/linear\_probe/<backbone>/<timestamp>/}
+  \item Results root: \texttt{results/<scenario>/<backbone>/<timestamp>/}
+  \item Checkpoints root: \texttt{model\_checkpoints/<scenario>/<backbone>/<timestamp>/}
   \item Aggregated tables: \texttt{results/tables/}
   \item Commit hash: \texttt{<FILL\_COMMIT\_HASH>}
 \end{itemize}
@@ -349,17 +349,153 @@ Compare linear probe, last-block fine-tuning, full fine-tuning, and selective 20
 
 \begin{table}[H]
 \centering
-\caption{Fine-tuning strategy comparison}
+\caption{Fine-tuning strategy comparison (Scenario 2)}
 \label{tab:s2}
+\scriptsize
 \begin{tabular}{llllll}
 \toprule
 \rowcolor{tableheader}
 \textbf{Backbone} & \textbf{Strategy} & \textbf{Trainable \%} & \textbf{Best Val Acc} & \textbf{Final Train Loss} & \textbf{Notes} \\
 \midrule
-<fill> & <fill> & <fill> & <fill> & <fill> & <fill> \\
+ResNet50 & linear\_probe & 0.261 & 0.8913 & 0.2250 & classifier only \\
+ResNet50 & selective\_20 & 23.661 & 0.9347 & 0.0158 & last 20\% params + head \\
+ResNet50 & last\_block & 63.753 & 0.9602 & 0.0155 & layer4 + head \\
+ResNet50 & full\_ft & 100.000 & 0.9602 & 0.0131 & all params trainable \\
+\midrule
+Inception-v3 & linear\_probe & 0.281 & 0.8786 & 0.1427 & classifier only \\
+Inception-v3 & last\_block & 0.281 & 0.8797 & 0.1498 & fallback maps to classifier \\
+Inception-v3 & selective\_20 & 21.491 & 0.9162 & 0.0273 & late mixed blocks + head \\
+Inception-v3 & full\_ft & 100.000 & 0.9403 & 0.0454 & all params trainable \\
+\midrule
+DenseNet121 & linear\_probe & 0.440 & 0.9219 & 0.0589 & classifier only \\
+DenseNet121 & selective\_20 & 21.547 & 0.9510 & 0.0166 & late denseblock4 + head \\
+DenseNet121 & last\_block & 31.367 & 0.9545 & 0.0214 & denseblock4+norm5+head \\
+DenseNet121 & full\_ft & 100.000 & 0.9503 & 0.0833 & all params trainable \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\section{Validation Accuracy vs Unfrozen Parameters}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/resnet50/20260313-124028/val_acc_vs_unfrozen_percent.png}
+    \caption{ResNet50}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/inception_v3/20260313-135849/val_acc_vs_unfrozen_percent.png}
+    \caption{Inception-v3}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/densenet121/20260313-153052/val_acc_vs_unfrozen_percent.png}
+    \caption{DenseNet121}
+  \end{subfigure}
+  \caption{Scenario 2: validation accuracy vs fraction of unfrozen parameters.}
+  \label{fig:s2-val-vs-unfrozen}
+\end{figure}
+
+\section{Convergence Stability (Training and Validation Loss)}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/resnet50/20260313-124028/modes/linear_probe/loss_curves.png}
+    \caption{ResNet50 LP}
+  \end{subfigure}
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/resnet50/20260313-124028/modes/selective_20/loss_curves.png}
+    \caption{ResNet50 Sel-20}
+  \end{subfigure}
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/resnet50/20260313-124028/modes/last_block/loss_curves.png}
+    \caption{ResNet50 LastBlk}
+  \end{subfigure}
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/resnet50/20260313-124028/modes/full_ft/loss_curves.png}
+    \caption{ResNet50 Full-FT}
+  \end{subfigure}
+  \caption{Convergence stability for ResNet50 across fine-tuning strategies.}
+  \label{fig:s2-loss-resnet}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/inception_v3/20260313-135849/modes/linear_probe/loss_curves.png}
+    \caption{Inc-v3 LP}
+  \end{subfigure}
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/inception_v3/20260313-135849/modes/selective_20/loss_curves.png}
+    \caption{Inc-v3 Sel-20}
+  \end{subfigure}
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/inception_v3/20260313-135849/modes/last_block/loss_curves.png}
+    \caption{Inc-v3 LastBlk}
+  \end{subfigure}
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/inception_v3/20260313-135849/modes/full_ft/loss_curves.png}
+    \caption{Inc-v3 Full-FT}
+  \end{subfigure}
+  \caption{Convergence stability for Inception-v3 across fine-tuning strategies.}
+  \label{fig:s2-loss-inc}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/densenet121/20260313-153052/modes/linear_probe/loss_curves.png}
+    \caption{Dense121 LP}
+  \end{subfigure}
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/densenet121/20260313-153052/modes/selective_20/loss_curves.png}
+    \caption{Dense121 Sel-20}
+  \end{subfigure}
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/densenet121/20260313-153052/modes/last_block/loss_curves.png}
+    \caption{Dense121 LastBlk}
+  \end{subfigure}
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\linewidth]{results/fine_tune/densenet121/20260313-153052/modes/full_ft/loss_curves.png}
+    \caption{Dense121 Full-FT}
+  \end{subfigure}
+  \caption{Convergence stability for DenseNet121 across fine-tuning strategies.}
+  \label{fig:s2-loss-dense}
+\end{figure}
+
+\section{Gradient Norm Statistics}
+\begin{table}[H]
+\centering
+\caption{Scenario 2 gradient norm summary (last epoch aggregate over parameters).}
+\label{tab:s2-grad}
+\scriptsize
+\begin{tabular}{lllll}
+\toprule
+\rowcolor{tableheader}
+\textbf{Backbone} & \textbf{Strategy} & \textbf{Grad Mean} & \textbf{Grad Median} & \textbf{Grad Max} \\
+\midrule
+ResNet50 & linear\_probe & 0.1781 & 0.3002 & 0.6711 \\
+ResNet50 & selective\_20 & 0.0335 & 0.0203 & 0.8166 \\
+ResNet50 & last\_block & 0.0160 & 0.0103 & 0.7836 \\
+ResNet50 & full\_ft & 0.0092 & 0.0048 & 0.7565 \\
+\midrule
+Inception-v3 & linear\_probe & 0.4440 & 0.8404 & 2.0284 \\
+Inception-v3 & last\_block & 0.4700 & 0.8888 & 2.3235 \\
+Inception-v3 & selective\_20 & 0.0366 & 0.0135 & 1.7615 \\
+Inception-v3 & full\_ft & 0.0226 & 0.0080 & 2.4522 \\
+\midrule
+DenseNet121 & linear\_probe & 0.2930 & 0.5594 & 1.6734 \\
+DenseNet121 & selective\_20 & 0.0227 & 0.0100 & 1.3979 \\
+DenseNet121 & last\_block & 0.0198 & 0.0077 & 2.0471 \\
+DenseNet121 & full\_ft & 0.0270 & 0.0076 & 2.3429 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Scenario 2 Analysis}
+Across all three backbones, moving from linear probe to partial/complete unfreezing improves validation accuracy, but the best strategy is architecture-dependent. ResNet50 and DenseNet121 peak at \textit{last\_block} (0.9602 and 0.9545), while Inception-v3 peaks at \textit{full\_ft} (0.9403). This indicates that deeper adaptation generally helps transfer, but fully unfreezing is not always optimal.
+
+Convergence plots show that train loss decreases faster with larger unfrozen fractions, while validation loss stability depends on strategy. Selective\_20 often gives a strong compromise: significantly higher accuracy than linear probe at much lower trainable percentage than full fine-tuning.
+
+Fine-tuning can reduce robustness when early and mid-level filters over-specialize to the training distribution. This typically appears when the train-val gap widens under full\_ft despite low train loss, indicating adaptation of generic ImageNet features toward dataset-specific cues that may not transfer under shifts.
 
 %==============================================================================
 \chapter{Scenario 3: Few-Shot Learning Analysis}
@@ -482,6 +618,9 @@ Use generated tables in \texttt{results/tables/}: accuracy comparison, robustnes
 Scenario 1 & ResNet50 & 30 & 00:09:38 & <FILL\_HARDWARE> \\
 Scenario 1 & Inception-v3 & 30 & 00:09:14 & <FILL\_HARDWARE> \\
 Scenario 1 & DenseNet121 & 30 & 00:09:27 & <FILL\_HARDWARE> \\
+Scenario 2 & ResNet50 (4 modes) & 30 each & 01:18:21 & <FILL\_HARDWARE> \\
+Scenario 2 & Inception-v3 (4 modes) & 30 each & 01:32:03 & <FILL\_HARDWARE> \\
+Scenario 2 & DenseNet121 (4 modes) & 30 each & 02:16:09 & <FILL\_HARDWARE> \\
 \bottomrule
 \end{tabular}
 \end{table}

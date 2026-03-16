@@ -58,6 +58,7 @@ def _train_and_get_best_ckpt(
     val_loader,
     run_dir: Path,
     ckpt_dir: Path,
+    epochs: int | None = None,
 ) -> tuple[TrainResult, TransferSummary]:
     model, _info = build_model(backbone, num_classes=CFG.num_classes, pretrained=CFG.pretrained)
     summary = set_transfer_mode(model, transfer_mode, backbone=backbone)
@@ -79,7 +80,7 @@ def _train_and_get_best_ckpt(
         train_loader,
         val_loader,
         opt,
-        CFG.epochs,
+        int(epochs if epochs is not None else CFG.epochs),
         _device(),
         run_dir,
         checkpoint_dir=ckpt_dir,
@@ -464,7 +465,7 @@ def run() -> None:
                     batch_size=CFG.batch_size,
                     num_workers=CFG.num_workers,
                     seed=CFG.few_shot_seed,
-                    fracs=(CFG.few_shot_frac,),
+                    fracs=CFG.few_shot_fracs,
                     pin_memory=CFG.pin_memory,
                     persistent_workers=CFG.persistent_workers,
                 )
@@ -493,6 +494,84 @@ def run() -> None:
                 "transfer_mode": transfer_mode,
             }
 
+            if scenario == "few_shot":
+                # Scenario-3: evaluate data efficiency at 100%, 20%, 5% with fixed seed
+                few_rows: list[dict] = []
+                fracs = tuple(float(f) for f in CFG.few_shot_fracs)
+
+                for frac in fracs:
+                    frac_train_loader = train_loaders[frac]
+                    frac_dir = run_dir / f"frac_{frac:.2f}"
+                    frac_ckpt_dir = ckpt_run_dir / f"frac_{frac:.2f}"
+                    frac_dir.mkdir(parents=True, exist_ok=True)
+                    frac_ckpt_dir.mkdir(parents=True, exist_ok=True)
+
+                    train_res_frac, summary_frac = _train_and_get_best_ckpt(
+                        backbone,
+                        transfer_mode=transfer_mode,
+                        train_loader=frac_train_loader,
+                        val_loader=val_loader,
+                        run_dir=frac_dir,
+                        ckpt_dir=frac_ckpt_dir,
+                        epochs=CFG.few_shot_epochs,
+                    )
+
+                    model_frac, _ = build_model(backbone, num_classes=CFG.num_classes, pretrained=False)
+                    load_checkpoint(train_res_frac.best_ckpt, model_frac)
+                    model_frac.to(_device())
+                    val_acc_frac = float(eval_one(model_frac, val_loader, _device()))
+
+                    train_acc_last = float(train_res_frac.history["train_acc"][-1]) if train_res_frac.history["train_acc"] else float("nan")
+                    val_acc_last = float(train_res_frac.history["val_acc"][-1]) if train_res_frac.history["val_acc"] else float("nan")
+                    train_val_gap = train_acc_last - val_acc_last if (train_acc_last == train_acc_last and val_acc_last == val_acc_last) else float("nan")
+
+                    acc_curve_path = plot_accuracy_curves(
+                        train_res_frac.history,
+                        out_path=frac_dir / "accuracy_curves.png",
+                        title=f"{backbone} few_shot frac={frac:.2f}: train/val accuracy",
+                    )
+                    loss_curve_path = plot_loss_curves(
+                        train_res_frac.history,
+                        out_path=frac_dir / "loss_curves.png",
+                        title=f"{backbone} few_shot frac={frac:.2f}: train/val loss",
+                    )
+
+                    few_rows.append(
+                        {
+                            **row_base,
+                            "epochs": CFG.few_shot_epochs,
+                            "few_shot_frac": frac,
+                            "ckpt": str(train_res_frac.best_ckpt),
+                            "val_acc": val_acc_frac,
+                            "train_acc_last": train_acc_last,
+                            "val_acc_last": val_acc_last,
+                            "train_val_gap": train_val_gap,
+                            "trainable_params": int(summary_frac.trainable_params),
+                            "total_params": int(summary_frac.total_params),
+                            "trainable_frac": float(summary_frac.trainable_frac),
+                            "mode_notes": summary_frac.notes,
+                            "artifact_accuracy_curves": str(acc_curve_path),
+                            "artifact_loss_curves": str(loss_curve_path),
+                            "seconds": round(time.time() - t0, 2),
+                        }
+                    )
+
+                # Relative performance drop per assignment: (Acc100 - Acc5)/Acc100
+                acc_map = {float(r["few_shot_frac"]): float(r["val_acc"]) for r in few_rows}
+                acc_100 = acc_map.get(1.0)
+                acc_5 = acc_map.get(0.05)
+                rel_drop = ((acc_100 - acc_5) / acc_100) if (acc_100 is not None and acc_5 is not None and acc_100 > 0) else float("nan")
+
+                for r in few_rows:
+                    r["acc_100"] = acc_100
+                    r["acc_5"] = acc_5
+                    r["relative_performance_drop"] = rel_drop
+                    csv_path = out_dir / "results_few_shot.csv"
+                    fieldnames = list(r.keys())
+                    _append_row(csv_path, fieldnames, r)
+
+                continue
+
             # --- layer_probe: no training required; probe the (pretrained OR trained?) model.
             # Keep it simple: probe the ImageNet-pretrained backbone with task head (untrained) is not useful,
             # so probe a trained full_ft model for this backbone.
@@ -504,6 +583,7 @@ def run() -> None:
                     val_loader=val_loader,
                     run_dir=run_dir / f"train_{transfer_mode}_for_probe",
                     ckpt_dir=ckpt_run_dir / f"train_{transfer_mode}_for_probe",
+                    epochs=CFG.epochs,
                 )
                 ckpt = train_res.best_ckpt
 
@@ -558,6 +638,7 @@ def run() -> None:
                         val_loader=val_loader,
                         run_dir=mode_run_dir,
                         ckpt_dir=mode_ckpt_run_dir,
+                        epochs=CFG.epochs,
                     )
 
                     model_mode, _ = build_model(backbone, num_classes=CFG.num_classes, pretrained=False)
@@ -620,6 +701,7 @@ def run() -> None:
                 val_loader=val_loader,
                 run_dir=run_dir,
                 ckpt_dir=ckpt_run_dir,
+                epochs=CFG.epochs,
             )
             ckpt = train_res.best_ckpt
 
