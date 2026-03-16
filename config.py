@@ -28,7 +28,7 @@ class Config:
 
     # --- Experiments ---
     exp_models: tuple[str, ...] = ("resnet50", "inception_v3", "densenet121")
-    exp_scenarios: tuple[str, ...] = ("few_shot",)
+    exp_scenarios: tuple[str, ...] = ("corruption",)
     fine_tune_modes: tuple[str, ...] = ("linear_probe", "last_block", "full_ft", "selective_20")
 
     # Scenario knobs

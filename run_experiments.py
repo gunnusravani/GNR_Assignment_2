@@ -172,13 +172,14 @@ def _eval_corruptions(model, *, batch_size: int, num_workers: int) -> Dict[str, 
         brightness_deltas=CFG.corruption_brightness_deltas,
     )
     for name, ds in ds_map.items():
+        pw = CFG.persistent_workers if (CFG.persistent_workers is not None) else (num_workers > 0)
         loader = torch.utils.data.DataLoader(
             ds,
             batch_size=batch_size,
             shuffle=False,
             num_workers=num_workers,
             pin_memory=CFG.pin_memory,
-            persistent_workers=CFG.persistent_workers,
+            persistent_workers=pw,
         )
         out[name] = float(eval_one(model, loader, _device()))
     return out
@@ -367,6 +368,8 @@ def aggregate_results_to_tables() -> None:
     for r in corr_best:
         clean = _to_float(r.get("val_acc"))
         mean_corr = _to_float(r.get("corruption_mean_acc"))
+        mean_err = _to_float(r.get("corruption_mean_error"))
+        rel_mean = _to_float(r.get("relative_robustness_mean"))
 
         # compute worst corruption across all "corruption__*" columns
         worst = None
@@ -383,6 +386,8 @@ def aggregate_results_to_tables() -> None:
                 "backbone": r.get("backbone", ""),
                 "clean_val_acc": clean,
                 "corruption_mean_acc": mean_corr,
+                "corruption_mean_error": mean_err,
+                "relative_robustness_mean": rel_mean,
                 "corruption_worst_acc": worst,
                 "mean_drop": (clean - mean_corr) if (clean is not None and mean_corr is not None) else None,
                 "worst_drop": (clean - worst) if (clean is not None and worst is not None) else None,
@@ -394,7 +399,16 @@ def aggregate_results_to_tables() -> None:
     _write_latex_table(
         out_dir / "robustness_comparison.tex",
         rob_tbl,
-        columns=["backbone", "clean_val_acc", "corruption_mean_acc", "corruption_worst_acc", "mean_drop", "worst_drop"],
+        columns=[
+            "backbone",
+            "clean_val_acc",
+            "corruption_mean_acc",
+            "corruption_mean_error",
+            "relative_robustness_mean",
+            "corruption_worst_acc",
+            "mean_drop",
+            "worst_drop",
+        ],
         caption="Robustness comparison: clean vs corrupted validation accuracy (best corruption-run per backbone).",
         label="tab:robustness_comparison",
     )
@@ -790,8 +804,22 @@ def run() -> None:
                 corr = _eval_corruptions(model, batch_size=CFG.batch_size, num_workers=CFG.num_workers)
                 # Flatten a few canonical keys; also store mean over all corruptions
                 row["corruption_mean_acc"] = float(sum(corr.values()) / max(1, len(corr)))
+                row["corruption_mean_error"] = float(1.0 - row["corruption_mean_acc"])
+                row["relative_robustness_mean"] = float(
+                    row["corruption_mean_acc"] / clean_acc if clean_acc > 0 else float("nan")
+                )
+
+                if corr:
+                    worst_name, worst_acc = min(corr.items(), key=lambda kv: kv[1])
+                    row["corruption_worst_name"] = worst_name
+                    row["corruption_worst_acc"] = float(worst_acc)
+                    row["corruption_worst_error"] = float(1.0 - worst_acc)
+                    row["relative_robustness_worst"] = float(worst_acc / clean_acc if clean_acc > 0 else float("nan"))
+
                 for k, v in sorted(corr.items()):
                     row[f"corruption__{k}"] = v
+                    row[f"corruption_error__{k}"] = float(1.0 - v)
+                    row[f"relative_robustness__{k}"] = float(v / clean_acc if clean_acc > 0 else float("nan"))
 
             csv_name = f"results_{scenario}.csv"
             csv_path = out_dir / csv_name

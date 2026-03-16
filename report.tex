@@ -169,7 +169,7 @@ The study answers the following assignment questions:
 Optimizer & AdamW \\
 Loss & Cross-Entropy \\
 Batch size & 32 \\
-Epochs & 30 \\
+Epochs & 30 (Scenarios 1-2), 20 (Scenario 3) \\
 Learning rate & 1e-3 \\
 Weight decay & 1e-4 \\
 Seed & 1337 \\
@@ -504,6 +504,25 @@ Fine-tuning can reduce robustness when early and mid-level filters over-speciali
 \section{Objective}
 Evaluate data efficiency at 100\%, 20\%, and 5\% training data.
 
+\section{Protocol, Parameters, and Fine-Tuning Mode}
+\textbf{Few-shot protocol:}
+\begin{itemize}
+  \item Backbone set: ResNet50, Inception-v3, DenseNet121.
+  \item Fractions: \{1.0, 0.2, 0.05\} of the original training split.
+  \item Subset sampling: deterministic with seed 1337; 20\% is sampled from 100\%, and 5\% is sampled from the same run's 20\% subset.
+\end{itemize}
+
+\textbf{Optimization parameters:}
+\begin{itemize}
+  \item Epochs: 20 (fixed for all few-shot runs).
+  \item Batch size: 32.
+  \item Input size: 299.
+  \item Optimizer: AdamW, learning rate $1\times10^{-3}$, weight decay $1\times10^{-4}$.
+\end{itemize}
+
+\textbf{Fine-tuning used in Scenario 3:} \texttt{selective\_20} for all backbones.
+This unfreezes the classifier head and only the last \textasciitilde20\% of backbone parameters (by cumulative parameter count), while earlier backbone parameters remain frozen. Observed trainable fractions are 23.66\% (ResNet50), 21.49\% (Inception-v3), and 21.55\% (DenseNet121).
+
 \section{Metrics}
 Relative performance drop:
 \begin{equation}
@@ -524,10 +543,78 @@ Training-validation gap:
 \rowcolor{tableheader}
 \textbf{Backbone} & \textbf{Acc@100\%} & \textbf{Acc@20\%} & \textbf{Acc@5\%} & \textbf{$\Delta$} & \textbf{Gap} \\
 \midrule
-<fill> & <fill> & <fill> & <fill> & <fill> & <fill> \\
+ResNet50 & 0.9339 & 0.8800 & 0.7483 & 0.1988 & 0.2559 \\
+Inception-v3 & 0.9205 & 0.8146 & 0.6820 & 0.2591 & 0.3174 \\
+DenseNet121 & 0.9496 & 0.8892 & 0.7497 & 0.2105 & 0.2580 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\vspace{-0.4em}
+\begin{center}
+\small
+Gap values denote $\mathrm{Acc}_{\mathrm{train,last}}-\mathrm{Acc}_{\mathrm{val,last}}$ for the 5\% setting.
+\end{center}
+
+\section{Few-Shot Accuracy Curves}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/few_shot/resnet50/20260316-123006/frac_1.00/accuracy_curves.png}
+    \caption{ResNet50, 100\%}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/few_shot/resnet50/20260316-123006/frac_0.20/accuracy_curves.png}
+    \caption{ResNet50, 20\%}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/few_shot/resnet50/20260316-123006/frac_0.05/accuracy_curves.png}
+    \caption{ResNet50, 5\%}
+  \end{subfigure}
+  \caption{ResNet50 few-shot accuracy curves under \texttt{selective\_20}.}
+  \label{fig:s3-acc-resnet}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/few_shot/inception_v3/20260316-124102/frac_1.00/accuracy_curves.png}
+    \caption{Inception-v3, 100\%}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/few_shot/inception_v3/20260316-124102/frac_0.20/accuracy_curves.png}
+    \caption{Inception-v3, 20\%}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/few_shot/inception_v3/20260316-124102/frac_0.05/accuracy_curves.png}
+    \caption{Inception-v3, 5\%}
+  \end{subfigure}
+  \caption{Inception-v3 few-shot accuracy curves under \texttt{selective\_20}.}
+  \label{fig:s3-acc-inception}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/few_shot/densenet121/20260316-125238/frac_1.00/accuracy_curves.png}
+    \caption{DenseNet121, 100\%}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/few_shot/densenet121/20260316-125238/frac_0.20/accuracy_curves.png}
+    \caption{DenseNet121, 20\%}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\linewidth]{results/few_shot/densenet121/20260316-125238/frac_0.05/accuracy_curves.png}
+    \caption{DenseNet121, 5\%}
+  \end{subfigure}
+  \caption{DenseNet121 few-shot accuracy curves under \texttt{selective\_20}.}
+  \label{fig:s3-acc-dense}
+\end{figure}
+
+\section{Scenario 3 Analysis}
+DenseNet121 gives the best absolute few-shot results at all three fractions (0.9496/0.8892/0.7497), followed by ResNet50 (0.9339/0.8800/0.7483), then Inception-v3 (0.9205/0.8146/0.6820). Inception-v3 shows the largest relative drop from 100\% to 5\% ($\Delta=0.2591$), indicating higher sensitivity to sample scarcity under the same optimization setup.
+
+All runs show strong memorization pressure at 5\%: train accuracy approaches 1.0 while validation accuracy saturates lower, producing larger train-val gaps (0.2559-0.3174). This confirms that data scarcity, rather than optimization failure, is the dominant limitation in the 5\% regime.
 
 %==============================================================================
 \chapter{Scenario 4: Corruption Robustness Evaluation}
@@ -621,6 +708,9 @@ Scenario 1 & DenseNet121 & 30 & 00:09:27 & <FILL\_HARDWARE> \\
 Scenario 2 & ResNet50 (4 modes) & 30 each & 01:18:21 & <FILL\_HARDWARE> \\
 Scenario 2 & Inception-v3 (4 modes) & 30 each & 01:32:03 & <FILL\_HARDWARE> \\
 Scenario 2 & DenseNet121 (4 modes) & 30 each & 02:16:09 & <FILL\_HARDWARE> \\
+Scenario 3 & ResNet50 (100/20/5\%) & 20 each & 00:26:35 & <FILL\_HARDWARE> \\
+Scenario 3 & Inception-v3 (100/20/5\%) & 20 each & 00:28:22 & <FILL\_HARDWARE> \\
+Scenario 3 & DenseNet121 (100/20/5\%) & 20 each & 00:26:52 & <FILL\_HARDWARE> \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -67,6 +67,7 @@ def main():
             motion_blur_kernel=CFG.corruption_motion_blur_kernel,
             brightness_deltas=CFG.corruption_brightness_deltas,
         )
+        pw = CFG.persistent_workers if (CFG.persistent_workers is not None) else (CFG.num_workers > 0)
         for name, ds in corrupted.items():
             loader = torch.utils.data.DataLoader(
                 ds,
@@ -74,7 +75,7 @@ def main():
                 shuffle=False,
                 num_workers=CFG.num_workers,
                 pin_memory=CFG.pin_memory,
-                persistent_workers=CFG.persistent_workers,
+                persistent_workers=pw,
             )
             cacc = evaluate(model, loader, device)
             print(f"corruption={name} val_acc={cacc:.4f}")
